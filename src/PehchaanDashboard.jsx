@@ -419,42 +419,34 @@ export default function PehchaanDashboard() {
         {/* Dark overlay to ensure text readability */}
         <div style={{position:"absolute", top:0, left:0, right:0, bottom:0, background:"rgba(17,24,39,0.3)", zIndex:1}}/>
 
-        {/* Top Branding (Bigger Logo, No Title Text) */}
-        <div style={{display:"flex", alignItems:"center", position:"relative", zIndex:2}}>
-          <div style={{
-            width:144, height:144, borderRadius:"50%", background:"#FFFFFF",
-            display:"flex", alignItems:"center", justifyItems:"center", justifyContent:"center", boxShadow:"0 4px 16px rgba(0,0,0,0.15)"
-          }}>
-            <img src="https://upload.wikimedia.org/wikipedia/commons/e/ee/Aadhaar.svg"
-              alt="Aadhaar logo" style={{width:96, height:96, objectFit:"contain"}}/>
-          </div>
+        {/* Top Text Content */}
+        <div style={{position:"relative", zIndex:2, display:"flex", flexDirection:"column", gap:10}}>
+          <h1 style={{fontSize:38, fontWeight:800, color:"#FFFFFF", fontFamily:HEAD, margin:0, lineHeight:1.15, letterSpacing:"-.03em"}}>
+            Aadhaar App Dashboard
+          </h1>
+          <p style={{fontSize:18, fontWeight:500, color:"#E5E7EB", margin:0, fontFamily:BODY, opacity:0.9, lineHeight:1.4}}>
+            Real-time updates, metrics, and revenue monitoring.
+          </p>
         </div>
 
-        {/* Bottom Text & Slides Indicator */}
-        <div style={{position:"relative", zIndex:2, display:"flex", flexDirection:"column", gap:24}}>
-          <div style={{display:"flex", flexDirection:"column", gap:10}}>
-            <h1 style={{fontSize:38, fontWeight:800, color:"#FFFFFF", fontFamily:HEAD, margin:0, lineHeight:1.15, letterSpacing:"-.03em"}}>
-              Aadhaar App Dashboard
-            </h1>
-            <p style={{fontSize:18, fontWeight:500, color:"#E5E7EB", margin:0, fontFamily:BODY, opacity:0.9, lineHeight:1.4}}>
-              Real-time updates, metrics, and revenue monitoring.
-            </p>
-          </div>
-
-          {/* Slider indicators */}
-          <div style={{display:"flex", gap:6, alignItems:"center"}}>
-            <span style={{width:28, height:6, borderRadius:4, background:"#FFFFFF"}}/>
-            <span style={{width:6, height:6, borderRadius:"50%", background:"rgba(255,255,255,0.4)"}}/>
-            <span style={{width:6, height:6, borderRadius:"50%", background:"rgba(255,255,255,0.4)"}}/>
-          </div>
+        {/* Slider indicators */}
+        <div style={{position:"relative", zIndex:2, display:"flex", gap:6, alignItems:"center"}}>
+          <span style={{width:28, height:6, borderRadius:4, background:"#FFFFFF"}}/>
+          <span style={{width:6, height:6, borderRadius:"50%", background:"rgba(255,255,255,0.4)"}}/>
+          <span style={{width:6, height:6, borderRadius:"50%", background:"rgba(255,255,255,0.4)"}}/>
         </div>
       </div>
 
       {/* RIGHT SPLIT (1/3rd width, centered passcode form) */}
-      <div className="login-form-pane">
+      <div className="login-form-pane" style={{overflow:"hidden"}}>
         {/* Centered Passcode Box */}
-        <div style={{maxWidth:400, width:"100%", margin:"0 auto", display:"flex", flexDirection:"column", gap:28}}>
+        <div style={{maxWidth:400, width:"100%", margin:"0 auto", display:"flex", flexDirection:"column", gap:28, position:"relative", zIndex:2}}>
           <div>
+            {/* Aadhaar Logo just above Welcome Back! */}
+            <div style={{marginBottom:16}}>
+              <img src="https://upload.wikimedia.org/wikipedia/commons/e/ee/Aadhaar.svg"
+                alt="Aadhaar logo" style={{width:80, height:80, objectFit:"contain"}}/>
+            </div>
             <h2 style={{fontSize:32, fontWeight:700, color:C.ink, margin:0, fontFamily:HEAD, letterSpacing:"-.03em"}}>
               Welcome Back!
             </h2>
@@ -514,12 +506,12 @@ export default function PehchaanDashboard() {
           bottom: 0,
           left: "50%",
           transform: "translate(-50%, 50%)",
-          width: 1080,
-          height: 1080,
+          width: 720,
+          height: 720,
           opacity: 0.5,
           pointerEvents: "none",
           userSelect: "none",
-          zIndex: 1
+          zIndex: 0
         }}/>
       </div>
     </div>
