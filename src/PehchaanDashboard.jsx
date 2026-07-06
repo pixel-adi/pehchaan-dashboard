@@ -17,8 +17,16 @@ import authBg from "./pehchaan_auth_bg.jpg";
 const SHEET_ID  = "1pwUb9tNTzqGO2utAzF-oLRNiCsENK596Mj-ff8etGzA";
 const SHEET_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
 const DATE_MIN  = "2025-11-25";
-const ACCESS_CODE     = "Pehchaan@2026";
-const RATE_PER_UPDATE = 75;
+const ACCESS_CODE_HASH = "8f37bc44abce5d3ab79e6022e38c64bb9056d68b92b67fcf99a82643a53e4c84";
+const RATE_PER_UPDATE  = 75;
+
+// Cryptographic hash helper using Web Crypto API
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+}
 
 // ── design tokens (premium, low-fatigue, toned-down tricolor theme) ────────────
 const C = {
@@ -254,12 +262,20 @@ export default function PehchaanDashboard() {
   const [to,       setTo]       = useState("");
   const [preset,   setPresetState] = useState("7");
   const [selCards, setSelCards] = useState(new Set());
-  const [gate,     setGate]     = useState(ACCESS_CODE ? false : true);
+  const [gate,     setGate]     = useState(ACCESS_CODE_HASH ? false : true);
   const [pw,       setPw]       = useState("");
   const [pwErr,    setPwErr]    = useState(false);
   const [showPw,   setShowPw]   = useState(false);
 
-  const tryUnlock = () => { if (pw===ACCESS_CODE){setGate(true);setPwErr(false);}else setPwErr(true); };
+  const tryUnlock = async () => {
+    const hash = await sha256(pw);
+    if (hash === ACCESS_CODE_HASH) {
+      setGate(true);
+      setPwErr(false);
+    } else {
+      setPwErr(true);
+    }
+  };
   const logout = () => { setGate(false); setPw(""); };
 
   const fetchSheet = useCallback(async (bust=false) => {
@@ -388,7 +404,7 @@ export default function PehchaanDashboard() {
 
   // ── gate ──────────────────────────────────────────────────────────────────
   // ── gate ──────────────────────────────────────────────────────────────────
-  if (ACCESS_CODE && !gate) return (
+  if (ACCESS_CODE_HASH && !gate) return (
     <div className="login-wrap">
       {/* LEFT SPLIT (2/3rds width) */}
       <div className="login-visual" style={{ background: `url(${authBg}) center/cover no-repeat` }}>
@@ -524,7 +540,7 @@ export default function PehchaanDashboard() {
           </button>
 
           {/* Exit / Logout Option */}
-          {ACCESS_CODE && (
+          {ACCESS_CODE_HASH && (
             <button onClick={logout} style={{
               display:"inline-flex",alignItems:"center",gap:6,fontSize:14,fontWeight:600,
               color: "#EF4444", background: C.surface,
