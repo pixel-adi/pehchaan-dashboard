@@ -516,10 +516,10 @@ export default function PehchaanDashboard() {
           transform: "translate(-50%, 50%)",
           width: 360,
           height: 360,
-          opacity: 0.12,
+          opacity: 0.5,
           pointerEvents: "none",
           userSelect: "none",
-          zIndex: 0
+          zIndex: 1
         }}/>
       </div>
     </div>
