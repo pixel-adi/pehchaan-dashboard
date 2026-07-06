@@ -1,25 +1,26 @@
-import React, { useState, useMemo, useRef, useCallback } from "react";
-import * as XLSX from "xlsx";
+import React, { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import {
-  Upload, RefreshCw, Lock, CloudOff, Plus, Trash2, Calendar, TrendingUp,
-  FileSpreadsheet, AlertCircle, IndianRupee, Smartphone, Apple,
+  RefreshCw, Lock, Plus, Trash2, Calendar, TrendingUp,
+  AlertCircle, IndianRupee, Smartphone, CheckCircle2,
 } from "lucide-react";
 
 /*
-  PEHCHAAN — Updates & Revenue Dashboard (Phase 1)
-  ------------------------------------------------
-  Self-contained. Upload the Excel; it parses the "Master Sheet" tab and renders.
-  Phase 2 (auto-sync from Drive, server-side password, persistent manual entry)
-  slots in behind the same UI — the seams are marked below.
+  PEHCHAAN — Updates & Revenue Dashboard
+  ---------------------------------------
+  Data is fetched automatically from the linked Google Sheet (CSV export).
+  Hit "Refresh" to pull the latest data at any time.
 
-  ACCESS_CODE: real auth is Phase 2 (server-side, not in client code).
-  Left null so the gate is inert here. Marked in the UI as Phase 2.
+  Sheet URL: https://docs.google.com/spreadsheets/d/1pwUb9tNTzqGO2utAzF-oLRNiCsENK596Mj-ff8etGzA
 */
-const ACCESS_CODE = "Pehchaan@2026"; // Phase-1 placeholder gate. Change this string to set your own password. Set back to null to disable. Not secure until Phase 2 moves the check server-side.
-const RATE_PER_UPDATE = 75; // ₹ per billable update (mobile + regular addr + HOF)
+
+const SHEET_ID = "1pwUb9tNTzqGO2utAzF-oLRNiCsENK596Mj-ff8etGzA";
+const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+
+const ACCESS_CODE = "Pehchaan@2026"; // Phase-1 placeholder gate. Set to null to disable.
+const RATE_PER_UPDATE = 75; // ₹ per billable update
 
 // ---------- palette ----------
 const C = {
@@ -35,57 +36,108 @@ const MONO = "ui-monospace, 'SF Mono', 'DM Mono', Menlo, monospace";
 // ---------- helpers ----------
 const nfIN = (n) => (n == null || isNaN(n) ? "—" : Math.round(n).toLocaleString("en-IN"));
 const toCr = (n) => (n / 1e7).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const iso = (d) => {
-  if (!d) return null;
-  if (typeof d === "string") { const m = d.match(/^\d{4}-\d{2}-\d{2}/); if (m) return m[0]; const p = new Date(d); return isNaN(p) ? null : p.toISOString().slice(0, 10); }
-  if (d instanceof Date && !isNaN(d)) return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())).toISOString().slice(0, 10);
-  return null;
+
+const iso = (s) => {
+  if (!s) return null;
+  s = String(s).trim();
+  // Already ISO format
+  const isoM = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoM) return `${isoM[1]}-${isoM[2]}-${isoM[3]}`;
+  // MM/DD/YYYY or M/D/YYYY from Google Sheets
+  const usM = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (usM) return `${usM[3]}-${usM[1].padStart(2, "0")}-${usM[2].padStart(2, "0")}`;
+  const p = new Date(s);
+  return isNaN(p) ? null : p.toISOString().slice(0, 10);
 };
+
 const monthLabel = (ymd) => { const [y, m] = ymd.split("-"); return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][+m - 1] + " " + y; };
 const dayLabel = (ymd) => { const [, m, d] = ymd.split("-"); return `${d} ${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][+m - 1]}`; };
 const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
-// map a sheet's header row to our canonical fields
-function resolveColumns(headers) {
-  const map = {};
-  headers.forEach((h, i) => {
-    const n = norm(h);
-    if (!("date" in map) && (n === "yearmonth" || n.includes("date"))) map.date = i;
-    else if (!("week" in map) && n.startsWith("week")) map.week = i;
-    else if (!("mobile" in map) && n.includes("mobile")) map.mobile = i;
-    else if (!("hof" in map) && n.includes("hof")) map.hof = i;
-    else if (!("email" in map) && n.includes("email")) map.email = i;
-    else if (!("address" in map) && n.includes("address") && !n.includes("hof")) map.address = i;
-    else if (!("total" in map) && n.includes("total") && n.includes("record")) map.total = i;
-  });
-  return map;
+// ---------- CSV parser ----------
+// Handles quoted fields with embedded commas/newlines
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = "", inQuote = false, i = 0;
+  while (i < text.length) {
+    const ch = text[i];
+    if (inQuote) {
+      if (ch === '"' && text[i + 1] === '"') { field += '"'; i += 2; continue; }
+      if (ch === '"') { inQuote = false; i++; continue; }
+      field += ch; i++; continue;
+    }
+    if (ch === '"') { inQuote = true; i++; continue; }
+    if (ch === ',') { row.push(field); field = ""; i++; continue; }
+    if (ch === '\n' || (ch === '\r' && text[i + 1] === '\n')) {
+      row.push(field); rows.push(row); row = []; field = ""; i += ch === '\r' ? 2 : 1; continue;
+    }
+    field += ch; i++;
+  }
+  if (field || row.length) { row.push(field); rows.push(row); }
+  return rows;
 }
 
-function parseWorkbook(wb) {
-  // prefer a sheet named like "master"; else first sheet whose header row has date + mobile
-  const order = [...wb.SheetNames].sort((a, b) => (norm(b).includes("master") ? 1 : 0) - (norm(a).includes("master") ? 1 : 0));
-  for (const name of order) {
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: true, cellDates: true, defval: null });
-    if (!rows.length) continue;
-    // find header row within first 5 rows
-    for (let hr = 0; hr < Math.min(5, rows.length); hr++) {
-      const cols = resolveColumns(rows[hr] || []);
-      if (cols.date != null && cols.mobile != null) {
-        const out = [];
-        for (let r = hr + 1; r < rows.length; r++) {
-          const row = rows[r]; if (!row) continue;
-          const date = iso(row[cols.date]); if (!date) continue;
-          const num = (i) => { const v = i == null ? 0 : row[i]; const x = typeof v === "number" ? v : parseFloat(String(v).replace(/,/g, "")); return isNaN(x) ? 0 : x; };
-          out.push({
-            date, week: cols.week != null ? String(row[cols.week] ?? "") : "",
-            mobile: num(cols.mobile), address: num(cols.address), hof: num(cols.hof), emailSheet: num(cols.email),
-          });
-        }
-        if (out.length) { out.sort((a, b) => a.date.localeCompare(b.date)); return { rows: out, sheet: name }; }
-      }
-    }
+// ---------- parse fetched CSV rows into our data model ----------
+function parseSheetCSV(csvText) {
+  const allRows = parseCSV(csvText);
+  if (!allRows.length) throw new Error("Empty sheet response.");
+
+  // Find header row (within first 5 rows) that has a date-like column
+  let headerIdx = -1, headers = [], cols = {};
+  for (let hi = 0; hi < Math.min(5, allRows.length); hi++) {
+    const h = allRows[hi].map(c => c.trim());
+    const n = h.map(norm);
+    const dateCol = n.findIndex(x => x.includes("year") || x.includes("date") || x.includes("month"));
+    if (dateCol === -1) continue;
+    headerIdx = hi;
+    headers = h;
+    // Map canonical fields
+    n.forEach((x, i) => {
+      if (x.includes("year") || x.includes("date") || x.includes("month")) cols.date = cols.date ?? i;
+      else if (x.startsWith("week")) cols.week = cols.week ?? i;
+      else if (x.includes("mobile")) cols.mobile = cols.mobile ?? i;
+      else if (x.includes("hof")) cols.hof = cols.hof ?? i;
+      else if (x.includes("email")) cols.email = cols.email ?? i;
+      else if (x.includes("address") && !x.includes("hof")) cols.address = cols.address ?? i;
+      else if (x.includes("total") && x.includes("record")) cols.totalRec = cols.totalRec ?? i;
+      else if (x.includes("ios")) cols.ios = cols.ios ?? i;
+      else if (x.includes("android")) cols.android = cols.android ?? i;
+    });
+    if (cols.date != null) break;
   }
-  throw new Error("No sheet with a date + mobile-updates column was found. Expected a tab like \u201cMaster Sheet\u201d.");
+
+  if (headerIdx === -1 || cols.date == null) {
+    throw new Error("Could not find a date column in the sheet. Expected columns like YearMonth, Mobile, etc.");
+  }
+
+  const num = (row, idx) => {
+    if (idx == null) return 0;
+    const v = row[idx]?.trim() ?? "";
+    const x = parseFloat(v.replace(/,/g, ""));
+    return isNaN(x) ? 0 : x;
+  };
+
+  const out = [];
+  for (let r = headerIdx + 1; r < allRows.length; r++) {
+    const row = allRows[r];
+    if (!row || !row.length) continue;
+    const date = iso(row[cols.date]);
+    if (!date) continue;
+    out.push({
+      date,
+      week: cols.week != null ? String(row[cols.week]?.trim() ?? "") : "",
+      mobile: num(row, cols.mobile),
+      address: num(row, cols.address),
+      hof: num(row, cols.hof),
+      emailSheet: num(row, cols.email),
+      ios: num(row, cols.ios),
+      android: num(row, cols.android),
+    });
+  }
+
+  if (!out.length) throw new Error("No data rows found in the sheet.");
+  out.sort((a, b) => a.date.localeCompare(b.date));
+  return out;
 }
 
 // ---------- small UI atoms ----------
@@ -123,22 +175,18 @@ function Seg({ options, value, onChange }) {
 // ================= main =================
 export default function PehchaanDashboard() {
   const [rows, setRows] = useState(null);
-  const [sheetName, setSheetName] = useState("");
-  const [fileName, setFileName] = useState("");
   const [lastUpdated, setLastUpdated] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const fileRef = useRef(null);
-  const lastFile = useRef(null);
 
   const [trend, setTrend] = useState("daily"); // daily | cumulative
-  const [gran, setGran] = useState("daily"); // daily | weekly | monthly
+  const [gran, setGran] = useState("daily");   // daily | weekly | monthly
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [visible, setVisible] = useState({ mobile: true, address: true, hof: true, email: true, total: true });
 
   const [manualEmail, setManualEmail] = useState({}); // { date: n }
-  const [manualDl, setManualDl] = useState({}); // { date: {android, ios} }
+  const [manualDl, setManualDl] = useState({});       // { date: {android, ios} }
   const [entryDate, setEntryDate] = useState("");
   const [entryEmail, setEntryEmail] = useState("");
   const [entryAnd, setEntryAnd] = useState("");
@@ -149,33 +197,46 @@ export default function PehchaanDashboard() {
   const [pwErr, setPwErr] = useState(false);
   const tryUnlock = () => { if (pw === ACCESS_CODE) { setGate(true); setPwErr(false); } else { setPwErr(true); } };
 
-  const readFile = useCallback(async (file) => {
+  // ---- fetch from Google Sheet ----
+  const fetchSheet = useCallback(async () => {
     setBusy(true); setError("");
     try {
-      const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf, { cellDates: true });
-      const { rows: parsed, sheet } = parseWorkbook(wb);
-      setRows(parsed); setSheetName(sheet); setFileName(file.name); lastFile.current = file;
+      const res = await fetch(SHEET_CSV_URL);
+      if (!res.ok) throw new Error(`HTTP ${res.status} — could not reach the Google Sheet. Make sure it is shared publicly.`);
+      const text = await res.text();
+      const parsed = parseSheetCSV(text);
+      setRows(parsed);
       setLastUpdated(new Date());
       const min = parsed[0].date, max = parsed[parsed.length - 1].date;
-      setFrom((f) => f || min); setTo((t) => t || max); setEntryDate((d) => d || max);
-    } catch (e) { setError(e.message || "Could not read this file."); setRows(null); }
-    finally { setBusy(false); }
+      setFrom((f) => f || min);
+      setTo((t) => t || max);
+      setEntryDate((d) => d || max);
+    } catch (e) {
+      setError(e.message || "Could not fetch sheet data.");
+      setRows(null);
+    } finally {
+      setBusy(false);
+    }
   }, []);
 
-  const onPick = (e) => { const f = e.target.files?.[0]; if (f) readFile(f); };
-  const refresh = () => { if (lastFile.current) readFile(lastFile.current); };
+  // Auto-fetch on mount (only after unlocking)
+  useEffect(() => {
+    if (gate) fetchSheet();
+  }, [gate, fetchSheet]);
 
   const bounds = useMemo(() => rows ? { min: rows[0].date, max: rows[rows.length - 1].date } : null, [rows]);
 
-  // effective rows within range (apply manual email override + downloads)
+  // effective rows within range (apply manual email override + manual download overrides)
   const inRange = useMemo(() => {
     if (!rows) return [];
     return rows.filter((r) => (!from || r.date >= from) && (!to || r.date <= to)).map((r) => {
       const email = r.date in manualEmail ? manualEmail[r.date] : r.emailSheet;
-      const dl = manualDl[r.date] || { android: 0, ios: 0 };
+      // manual download overrides sheet values for that date if set
+      const manDl = manualDl[r.date];
+      const android = manDl ? (manDl.android || 0) : (r.android || 0);
+      const ios = manDl ? (manDl.ios || 0) : (r.ios || 0);
       const base = r.mobile + r.address + r.hof;
-      return { ...r, email, total: base + email, base, android: dl.android || 0, ios: dl.ios || 0 };
+      return { ...r, email, total: base + email, base, android, ios };
     });
   }, [rows, from, to, manualEmail, manualDl]);
 
@@ -213,7 +274,7 @@ export default function PehchaanDashboard() {
   }, [buckets, trend]);
   const hasDl = useMemo(() => buckets.some((b) => b.android || b.ios), [buckets]);
 
-  // KPIs (range sums — independent of daily/cumulative toggle)
+  // KPIs
   const k = useMemo(() => {
     const s = (f) => inRange.reduce((a, r) => a + r[f], 0);
     const mobile = s("mobile"), address = s("address"), hof = s("hof"), email = s("email");
@@ -255,7 +316,7 @@ export default function PehchaanDashboard() {
     { key: "total", name: "Total", color: C.total },
   ];
 
-  // ---- gate (Phase 2 seam) ----
+  // ---- gate ----
   if (ACCESS_CODE && !gate) {
     return (
       <div style={{ minHeight: 460, background: C.canvas, display: "grid", placeItems: "center", fontFamily: SANS }}>
@@ -270,7 +331,6 @@ export default function PehchaanDashboard() {
             style={{ width: "100%", padding: "10px 12px", border: `1px solid ${pwErr ? "#C4463A" : C.line}`, borderRadius: 8, fontFamily: MONO }} />
           {pwErr && <div style={{ fontSize: 12.5, color: "#C4463A", marginTop: 8 }}>Incorrect password.</div>}
           <button onClick={tryUnlock} style={{ width: "100%", marginTop: 10, padding: "10px", background: C.navy, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}>Unlock</button>
-          <div style={{ fontSize: 11, color: C.faint, marginTop: 12, fontFamily: MONO }}>Server-side verification arrives in Phase 2.</div>
         </Card>
       </div>
     );
@@ -282,27 +342,42 @@ export default function PehchaanDashboard() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", marginBottom: 18 }}>
         <div>
           <Eyebrow>UIDAI · Aadhaar App</Eyebrow>
-          <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: "-.01em", marginTop: 4 }}>Pehchaan — Updates & Revenue</div>
+          <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: "-.01em", marginTop: 4 }}>Pehchaan — Updates &amp; Revenue</div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <span title="Server-side auto-sync from Drive arrives in Phase 2" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: C.faint, border: `1px dashed ${C.line}`, borderRadius: 8, padding: "6px 10px", fontFamily: MONO }}><CloudOff size={13} /> Auto-sync · Phase 2</span>
-          <span title="Server-side access control arrives in Phase 2" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: C.faint, border: `1px dashed ${C.line}`, borderRadius: 8, padding: "6px 10px", fontFamily: MONO }}><Lock size={13} /> Access · Phase 2</span>
-          <button onClick={refresh} disabled={!lastFile.current || busy} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: rows ? C.ink : C.faint, background: C.surface, border: `1px solid ${C.line}`, borderRadius: 8, padding: "8px 12px", cursor: rows ? "pointer" : "default" }}><RefreshCw size={14} className={busy ? "spin" : ""} /> Refresh</button>
-          <button onClick={() => fileRef.current?.click()} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: "#fff", background: C.navy, border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}><Upload size={14} /> {rows ? "Replace file" : "Upload Excel"}</button>
-          <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={onPick} style={{ display: "none" }} />
+          {lastUpdated && !busy && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#2E9E6B", border: `1px solid #C6EDD9`, borderRadius: 8, padding: "6px 10px", fontFamily: MONO, background: "#F0FAF5" }}>
+              <CheckCircle2 size={13} /> Live · Google Sheet
+            </span>
+          )}
+          <button
+            id="refresh-btn"
+            onClick={fetchSheet}
+            disabled={busy}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: C.ink, background: C.surface, border: `1px solid ${C.line}`, borderRadius: 8, padding: "8px 14px", cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
+            <RefreshCw size={14} className={busy ? "spin" : ""} />
+            {busy ? "Fetching…" : "Refresh"}
+          </button>
         </div>
       </div>
 
-      {error && <Card style={{ padding: 14, marginBottom: 16, borderColor: "#E9B7B0", background: "#FCF3F1", display: "flex", gap: 10 }}><AlertCircle size={18} color="#B4432E" /><div style={{ fontSize: 13, color: "#8A3322" }}>{error}</div></Card>}
+      {error && (
+        <Card style={{ padding: 14, marginBottom: 16, borderColor: "#E9B7B0", background: "#FCF3F1", display: "flex", gap: 10 }}>
+          <AlertCircle size={18} color="#B4432E" />
+          <div style={{ fontSize: 13, color: "#8A3322" }}>{error}</div>
+        </Card>
+      )}
 
-      {!rows ? (
-        <div onClick={() => fileRef.current?.click()} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) readFile(f); }}
-          style={{ border: `1.5px dashed ${C.line}`, borderRadius: 16, background: C.surface, padding: "72px 24px", textAlign: "center", cursor: "pointer" }}>
-          <FileSpreadsheet size={40} color={C.teal} />
-          <div style={{ fontSize: 18, fontWeight: 700, marginTop: 14 }}>Drop the Pehchaan Excel here</div>
-          <div style={{ fontSize: 13.5, color: C.muted, marginTop: 6, maxWidth: 460, marginInline: "auto" }}>Reads the <b>Master Sheet</b> tab (one row per date). Email and app downloads are added manually below. Nothing leaves your browser.</div>
+      {/* loading state */}
+      {busy && !rows && (
+        <div style={{ border: `1.5px dashed ${C.line}`, borderRadius: 16, background: C.surface, padding: "72px 24px", textAlign: "center" }}>
+          <RefreshCw size={36} color={C.teal} className="spin" style={{ margin: "0 auto" }} />
+          <div style={{ fontSize: 18, fontWeight: 700, marginTop: 14 }}>Loading from Google Sheet…</div>
+          <div style={{ fontSize: 13.5, color: C.muted, marginTop: 6 }}>Fetching the latest data automatically.</div>
         </div>
-      ) : (
+      )}
+
+      {rows && (
         <>
           {/* controls */}
           <Card style={{ padding: 14, marginBottom: 16, display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center" }}>
@@ -366,7 +441,7 @@ export default function PehchaanDashboard() {
           {/* downloads + manual entry */}
           <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 16, marginBottom: 16 }}>
             <Card style={{ padding: "18px 18px 8px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><Smartphone size={16} color={C.android} /><b style={{ fontSize: 15 }}>App downloads</b><span style={{ fontSize: 12, color: C.faint, fontFamily: MONO }}>manual · {trend}</span></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><Smartphone size={16} color={C.android} /><b style={{ fontSize: 15 }}>App downloads</b><span style={{ fontSize: 12, color: C.faint, fontFamily: MONO }}>from sheet · {trend}</span></div>
               {hasDl ? (
                 <ResponsiveContainer width="100%" height={220}>
                   <LineChart data={dlData} margin={{ top: 6, right: 12, left: 6, bottom: 0 }}>
@@ -380,24 +455,24 @@ export default function PehchaanDashboard() {
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <div style={{ padding: "40px 12px", textAlign: "center", color: C.muted, fontSize: 13 }}>No download figures yet. Add them under <b>Manual entry</b> to plot Android vs iOS.</div>
+                <div style={{ padding: "40px 12px", textAlign: "center", color: C.muted, fontSize: 13 }}>No download data in the sheet yet.</div>
               )}
             </Card>
 
             <Card style={{ padding: 18 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}><Plus size={16} color={C.teal} /><b style={{ fontSize: 15 }}>Manual entry</b></div>
-              <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Email overrides the sheet for that date. Downloads are manual-only. <span style={{ color: C.faint }}>Held in-session (persists in Phase 2).</span></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}><Plus size={16} color={C.teal} /><b style={{ fontSize: 15 }}>Manual overrides</b></div>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Override email or download figures for a specific date. Sheet values are used by default.</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 <label style={{ gridColumn: "1 / -1", fontSize: 11, color: C.muted, fontFamily: MONO }}>Date
                   <input type="date" value={entryDate} min={bounds.min} max={bounds.max} onChange={(e) => setEntryDate(e.target.value)} style={{ width: "100%", marginTop: 4, padding: "8px 9px", border: `1px solid ${C.line}`, borderRadius: 8, fontFamily: MONO, fontSize: 12.5 }} /></label>
-                <label style={{ gridColumn: "1 / -1", fontSize: 11, color: C.muted, fontFamily: MONO }}>Email updates
+                <label style={{ gridColumn: "1 / -1", fontSize: 11, color: C.muted, fontFamily: MONO }}>Email updates override
                   <input type="number" min="0" value={entryEmail} onChange={(e) => setEntryEmail(e.target.value)} placeholder="e.g. 125696" style={{ width: "100%", marginTop: 4, padding: "8px 9px", border: `1px solid ${C.line}`, borderRadius: 8, fontFamily: MONO, fontSize: 12.5 }} /></label>
-                <label style={{ fontSize: 11, color: C.muted, fontFamily: MONO }}>Android
+                <label style={{ fontSize: 11, color: C.muted, fontFamily: MONO }}>Android override
                   <input type="number" min="0" value={entryAnd} onChange={(e) => setEntryAnd(e.target.value)} placeholder="0" style={{ width: "100%", marginTop: 4, padding: "8px 9px", border: `1px solid ${C.line}`, borderRadius: 8, fontFamily: MONO, fontSize: 12.5 }} /></label>
-                <label style={{ fontSize: 11, color: C.muted, fontFamily: MONO }}>iOS
+                <label style={{ fontSize: 11, color: C.muted, fontFamily: MONO }}>iOS override
                   <input type="number" min="0" value={entryIos} onChange={(e) => setEntryIos(e.target.value)} placeholder="0" style={{ width: "100%", marginTop: 4, padding: "8px 9px", border: `1px solid ${C.line}`, borderRadius: 8, fontFamily: MONO, fontSize: 12.5 }} /></label>
               </div>
-              <button onClick={addEntry} style={{ width: "100%", marginTop: 12, padding: "9px", background: C.teal, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13 }}>Add / update entry</button>
+              <button onClick={addEntry} style={{ width: "100%", marginTop: 12, padding: "9px", background: C.teal, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13 }}>Apply override</button>
               {entries.length > 0 && (
                 <div style={{ marginTop: 12, maxHeight: 150, overflowY: "auto" }}>
                   {entries.map((e) => (
@@ -414,8 +489,8 @@ export default function PehchaanDashboard() {
 
           {/* footer */}
           <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, fontSize: 12, color: C.faint, fontFamily: MONO, padding: "4px 2px" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Calendar size={13} /> {fileName} · tab “{sheetName}” · {rows.length} rows · {bounds.min} → {bounds.max}</span>
-            <span>Last updated {lastUpdated?.toLocaleString("en-IN")}</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Calendar size={13} /> Google Sheet · {rows.length} rows · {bounds.min} → {bounds.max}</span>
+            <span>Last refreshed {lastUpdated?.toLocaleString("en-IN")}</span>
           </div>
         </>
       )}
