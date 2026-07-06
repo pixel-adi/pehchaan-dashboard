@@ -445,7 +445,7 @@ export default function PehchaanDashboard() {
             {/* Aadhaar Logo just above Welcome Back! */}
             <div style={{marginBottom:16}}>
               <img src="https://upload.wikimedia.org/wikipedia/commons/e/ee/Aadhaar.svg"
-                alt="Aadhaar logo" style={{width:80, height:80, objectFit:"contain"}}/>
+                alt="Aadhaar logo" style={{width:160, height:160, objectFit:"contain"}}/>
             </div>
             <h2 style={{fontSize:32, fontWeight:700, color:C.ink, margin:0, fontFamily:HEAD, letterSpacing:"-.03em"}}>
               Welcome Back!
