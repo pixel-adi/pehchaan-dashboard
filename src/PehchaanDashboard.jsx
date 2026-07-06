@@ -17,7 +17,10 @@ import authBg from "./pehchaan_auth_bg.jpg";
 const SHEET_ID  = "1pwUb9tNTzqGO2utAzF-oLRNiCsENK596Mj-ff8etGzA";
 const SHEET_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
 const DATE_MIN  = "2025-11-25";
-const ACCESS_CODE_HASH = "8f37bc44abce5d3ab79e6022e38c64bb9056d68b92b67fcf99a82643a53e4c84";
+const ACCESS_CODE_HASHES = [
+  "617802c3453aac841fbed3bc0269a48f3d44da26942e790a71e0c44a1f60a196", // "Pehchaan@2026"
+  "0cf19586e65d6f546478af43de4981e83131ad9ae41c7d77841d2d3a907fba9d"  // "Pehchan@2026"
+];
 const RATE_PER_UPDATE  = 75;
 
 // Cryptographic hash helper using Web Crypto API
@@ -262,14 +265,14 @@ export default function PehchaanDashboard() {
   const [to,       setTo]       = useState("");
   const [preset,   setPresetState] = useState("7");
   const [selCards, setSelCards] = useState(new Set());
-  const [gate,     setGate]     = useState(ACCESS_CODE_HASH ? false : true);
+  const [gate,     setGate]     = useState(ACCESS_CODE_HASHES ? false : true);
   const [pw,       setPw]       = useState("");
   const [pwErr,    setPwErr]    = useState(false);
   const [showPw,   setShowPw]   = useState(false);
 
   const tryUnlock = async () => {
     const hash = await sha256(pw);
-    if (hash === ACCESS_CODE_HASH) {
+    if (ACCESS_CODE_HASHES.includes(hash)) {
       setGate(true);
       setPwErr(false);
     } else {
@@ -404,7 +407,7 @@ export default function PehchaanDashboard() {
 
   // ── gate ──────────────────────────────────────────────────────────────────
   // ── gate ──────────────────────────────────────────────────────────────────
-  if (ACCESS_CODE_HASH && !gate) return (
+  if (ACCESS_CODE_HASHES && !gate) return (
     <div className="login-wrap">
       {/* LEFT SPLIT (2/3rds width) */}
       <div className="login-visual" style={{ background: `url(${authBg}) center/cover no-repeat` }}>
@@ -540,7 +543,7 @@ export default function PehchaanDashboard() {
           </button>
 
           {/* Exit / Logout Option */}
-          {ACCESS_CODE_HASH && (
+          {ACCESS_CODE_HASHES && (
             <button onClick={logout} style={{
               display:"inline-flex",alignItems:"center",gap:6,fontSize:14,fontWeight:600,
               color: "#EF4444", background: C.surface,
