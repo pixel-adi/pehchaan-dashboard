@@ -9,6 +9,7 @@ import {
   Eye, EyeOff,
 } from "lucide-react";
 import authBg from "./pehchaan_auth_bg.jpg";
+import mandalaImg from "./mandala.png";
 
 /*
   PEHCHAAN — Updates & Revenue Dashboard
@@ -502,10 +503,24 @@ export default function PehchaanDashboard() {
               border:"none", borderRadius:10, cursor:"pointer", fontWeight:700,
               fontSize:14, fontFamily:BODY, transition:"background .15s", marginTop:4
             }}>
-              Unlock Dashboard
+              Login
             </button>
           </div>
         </div>
+
+        {/* Mandala Watermark at the bottom center (only half visible) */}
+        <img src={mandalaImg} alt="" style={{
+          position: "absolute",
+          bottom: 0,
+          left: "50%",
+          transform: "translate(-50%, 50%)",
+          width: 360,
+          height: 360,
+          opacity: 0.12,
+          pointerEvents: "none",
+          userSelect: "none",
+          zIndex: 0
+        }}/>
       </div>
     </div>
   );
