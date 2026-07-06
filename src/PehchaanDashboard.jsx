@@ -237,7 +237,7 @@ const CARD_LINES = {
 };
 
 // ── custom tooltip ────────────────────────────────────────────────────────────
-const ChartTooltip = ({ active, payload, label }) => {
+const ChartTooltip = ({ active, payload, label, isRevenue }) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={{background:"#fff",border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 16px",fontFamily:BODY,boxShadow:"0 4px 16px rgba(0,0,0,.08)"}}>
@@ -246,7 +246,11 @@ const ChartTooltip = ({ active, payload, label }) => {
         <div key={p.dataKey} style={{display:"flex",alignItems:"center",gap:8,fontSize:14,color:C.sub,fontWeight:500,marginBottom:4}}>
           <span style={{width:8,height:8,borderRadius:"50%",background:p.stroke,flexShrink:0}}/>
           <span style={{color:C.muted}}>{p.name}</span>
-          <span style={{marginLeft:"auto",fontWeight:700,color:C.ink,paddingLeft:12}}>{nfIN(p.value)}</span>
+          <span style={{marginLeft:"auto",fontWeight:700,color:C.ink,paddingLeft:12}}>
+            {isRevenue 
+              ? `₹${Math.round(p.value * RATE_PER_UPDATE).toLocaleString("en-IN")}` 
+              : nfIN(p.value)}
+          </span>
         </div>
       ))}
     </div>
@@ -699,7 +703,7 @@ export default function PehchaanDashboard() {
                     <CartesianGrid strokeDasharray="4 4" stroke="#F3F4F6" vertical={false}/>
                     <XAxis dataKey="label" tick={{fontSize:14,fill:C.faint,fontFamily:MONO}} tickMargin={6} minTickGap={32} axisLine={{stroke:C.border}} tickLine={false}/>
                     <YAxis tick={{fontSize:14,fill:C.faint,fontFamily:MONO}} tickFormatter={fmtK} axisLine={false} tickLine={false} width={48}/>
-                    <Tooltip content={<ChartTooltip/>}/>
+                    <Tooltip content={<ChartTooltip isRevenue={selCards.has("revenue")}/>}/>
                     {lineDef.filter(l=>effectiveLines[l.key]).map(l=>(
                       <Line key={l.key} type="monotone" dataKey={l.key} name={l.name} stroke={l.color}
                         strokeWidth={l.key==="total"?2.8:2.2} dot={false} activeDot={{r:6,strokeWidth:0}}
