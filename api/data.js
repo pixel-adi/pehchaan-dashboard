@@ -1,14 +1,20 @@
 // api/data.js
 export default async function handler(req, res) {
   const passcode = req.headers['x-passcode'];
-  const validPasscodes = ["Pehchaan@2026", "Pehchan@2026"];
+  
+  // Read valid passcodes from Vercel Environment Variables, fallback to defaults
+  const envPasscodes = process.env.VALID_PASSCODES;
+  const validPasscodes = envPasscodes 
+    ? envPasscodes.split(",").map(p => p.trim()) 
+    : ["Pehchaan@2026", "Pehchan@2026"];
   
   if (!validPasscodes.includes(passcode)) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
   try {
-    const SHEET_ID = "1pwUb9tNTzqGO2utAzF-oLRNiCsENK596Mj-ff8etGzA";
+    // Read Google Sheet ID from Vercel Environment Variables, fallback to default
+    const SHEET_ID = process.env.SHEET_ID || "1pwUb9tNTzqGO2utAzF-oLRNiCsENK596Mj-ff8etGzA";
     const SHEET_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
     
     const bust = req.query.bust === 'true';
