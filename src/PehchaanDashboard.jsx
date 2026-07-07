@@ -174,30 +174,30 @@ function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal,
     <div onClick={onClick} style={{
       background: selected ? C.selBg : C.surface,
       border: `1.5px solid ${selected ? C.selBdr : C.border}`,
-      borderRadius: RADIUS, padding: "14px 16px",
+      borderRadius: RADIUS, padding: "12px 18px",
       cursor: "pointer", userSelect: "none",
       boxShadow: selected ? SHADOW_SEL : SHADOW,
       transition: "box-shadow .18s, border-color .18s, background .18s",
-      display: "flex", flexDirection: "column", gap: 10,
+      display: "flex", flexDirection: "column", gap: 6,
       height: "100%", boxSizing: "border-box"
     }}>
       {/* Top Section */}
       <div style={{display:"flex",flexDirection:"column",gap:8,flexShrink:0,minWidth:0}}>
         {/* Title + Badge Stack */}
         <div style={{display:"flex",alignItems:"flex-start",gap:8,minWidth:0}}>
-          <div style={{width:28,height:28,borderRadius:8,background:`${color}12`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2}}>
-            <Icon size={14} color={color} strokeWidth={2.2}/>
+          <div style={{width:32,height:32,borderRadius:8,background:`${color}12`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2}}>
+            <Icon size={16} color={color} strokeWidth={2.2}/>
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:0,flex:1}}>
-            <span style={{fontSize:14,fontWeight:500,color:C.sub,fontFamily:BODY,letterSpacing:".01em",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</span>
+          <div style={{display:"flex",flexDirection:"column",gap:2,minWidth:0,flex:1}}>
+            <span style={{fontSize:13,fontWeight:600,color:C.sub,fontFamily:BODY,letterSpacing:".01em",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</span>
             {badge != null && (
               <div style={{display:"flex"}}>
                 <span style={{
-                  fontSize:12,fontWeight:600,fontFamily:BODY,
+                  fontSize:11,fontWeight:600,fontFamily:BODY,
                   color: badge >= 0 ? "#2B8C5B" : "#C2410C",
                   background: badge >= 0 ? "#F0FDF4" : "#FFF7ED",
                   border: `1px solid ${badge >= 0 ? "#D1FAE5" : "#FFEDD5"}`,
-                  borderRadius:6, padding:"1px 6px", flexShrink:0, whiteSpace:"nowrap"
+                  borderRadius:5, padding:"0px 5px", flexShrink:0, whiteSpace:"nowrap"
                 }}>{badge >= 0 ? "▲" : "▼"} {Math.abs(badge).toFixed(1)}%</span>
               </div>
             )}
@@ -206,9 +206,9 @@ function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal,
 
         {/* Main Value + Sparkline + Today Chip */}
         <div style={{display:"flex",flexDirection:"column",gap:6,marginTop:2}}>
-          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8}}>
-            <div style={{fontFamily:HEAD,fontSize:28,fontWeight:700,color:C.ink,lineHeight:1,fontVariantNumeric:"tabular-nums",letterSpacing:"-.03em",whiteSpace:"nowrap"}}>{value}</div>
-            <div style={{flexShrink:0,paddingTop:4}}>
+          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12}}>
+            <div style={{fontFamily:HEAD,fontSize:26,fontWeight:700,color:C.ink,lineHeight:1,fontVariantNumeric:"tabular-nums",letterSpacing:"-.03em",whiteSpace:"nowrap"}}>{value}</div>
+            <div style={{flexShrink:0,paddingTop:2}}>
               <Spark data={sparkData} color={color}/>
             </div>
           </div>
@@ -217,7 +217,7 @@ function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal,
               <span style={{
                 display:"inline-flex",alignItems:"center",
                 background:"#F3F4F6",border:"1px solid #E5E7EB",
-                borderRadius:6,padding:"2px 8px",fontSize:12,
+                borderRadius:5,padding:"1px 6px",fontSize:11,
                 fontFamily:BODY,color:C.sub,fontWeight:500,whiteSpace:"nowrap"
               }}>
                 {todayLabel}:&nbsp;<span style={{color:C.ink,fontWeight:600}}>{todayVal}</span>
@@ -233,11 +233,11 @@ function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal,
 
       {/* Breakdown Rows (Bottom aligned) */}
       {rows1 && rows1.length > 0 && (
-        <div style={{borderTop:`1px solid ${C.border}`,paddingTop:10,display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
+        <div style={{borderTop:`1px solid ${C.border}`,paddingTop:8,display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
           {rows1.map((r,i) => (
             <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
-              <span style={{fontSize:14,color:C.muted,fontFamily:BODY,fontWeight:400,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.label}</span>
-              <span style={{fontSize:14,fontWeight:600,color:C.sub,fontFamily:BODY,whiteSpace:"nowrap",flexShrink:0}}>{r.value}</span>
+              <span style={{fontSize:13,color:C.muted,fontFamily:BODY,fontWeight:400,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.label}</span>
+              <span style={{fontSize:13,fontWeight:600,color:C.sub,fontFamily:BODY,whiteSpace:"nowrap",flexShrink:0}}>{r.value}</span>
             </div>
           ))}
         </div>
