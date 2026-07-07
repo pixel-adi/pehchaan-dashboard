@@ -1,149 +1,209 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pehchaan — Updates &amp; Revenue</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-    <style>
-      *, *::before, *::after { box-sizing: border-box; }
-      html, body, #root { height: 100%; margin: 0; }
-      body { background: #F4F6F9; -webkit-font-smoothing: antialiased; }
 
-      @keyframes sp { to { transform: rotate(360deg); } }
-      .spin { animation: sp .9s linear infinite; }
-      button:hover:not(:disabled) { filter: brightness(.97); }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pehchaan — Updates &amp; Revenue</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
 
-      /* Responsive Layout Classes */
-      .login-wrap {
-        height: 100vh;
-        display: flex;
-        background: #FFFFFF;
-        overflow: hidden;
-        width: 100vw;
+    html,
+    body,
+    #root {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      background: #F4F6F9;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    @keyframes sp {
+      to {
+        transform: rotate(360deg);
       }
+    }
+
+    .spin {
+      animation: sp .9s linear infinite;
+    }
+
+    button:hover:not(:disabled) {
+      filter: brightness(.97);
+    }
+
+    /* Responsive Layout Classes */
+    .login-wrap {
+      height: 100vh;
+      display: flex;
+      background: #FFFFFF;
+      overflow: hidden;
+      width: 100vw;
+    }
+
+    .login-visual {
+      width: 66.66%;
+      height: 100%;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 48px;
+      box-sizing: border-box;
+    }
+
+    .login-form-pane {
+      width: 33.33%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 48px;
+      box-sizing: border-box;
+      position: relative;
+      background: radial-gradient(circle at 50% -100px, rgba(231, 126, 102, 0.25) 0%, rgba(255, 255, 255, 0) 70%), #FFFFFF;
+      overflow: hidden;
+    }
+
+    .dashboard-wrap {
+      background: #F4F6F9;
+      font-family: 'Inter', system-ui, sans-serif;
+      color: #1F2937;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 16px 16px;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .dashboard-body {
+      flex: 1;
+      display: flex;
+      gap: 16px;
+      min-height: 0;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .dashboard-kpis {
+      width: 35%;
+      flex: 0 0 35%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-height: 0;
+      min-width: 0;
+      height: 100%;
+      overflow-y: auto;
+    }
+
+    .dashboard-kpi-sec1 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .dashboard-kpi-sec2 {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .dashboard-charts {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-height: 0;
+      min-width: 0;
+      overflow: hidden;
+      height: 100%;
+    }
+
+    /* Responsive Breakpoints */
+    @media (max-width: 1350px) {
+    }
+
+    @media (max-width: 1024px) {
       .login-visual {
-        width: 66.66%;
-        height: 100%;
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        padding: 48px;
-        box-sizing: border-box;
+        display: none;
       }
+
       .login-form-pane {
-        width: 33.33%;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        padding: 48px;
-        box-sizing: border-box;
-        position: relative;
-        background: radial-gradient(circle at 50% -100px, rgba(231, 126, 102, 0.25) 0%, rgba(255, 255, 255, 0) 70%), #FFFFFF;
-        overflow: hidden;
+        width: 100%;
+        padding: 32px 24px;
       }
 
       .dashboard-wrap {
-        background: #F4F6F9;
-        font-family: 'Inter', system-ui, sans-serif;
-        color: #1F2937;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        padding: 16px 16px;
-        box-sizing: border-box;
-        overflow: hidden;
+        height: auto;
+        min-height: 100vh;
+        overflow: auto;
+        padding: 12px 16px;
       }
+
       .dashboard-body {
-        flex: 1;
-        display: flex;
+        flex-direction: column;
+        height: auto;
+        overflow: visible;
         gap: 16px;
-        min-height: 0;
-        min-width: 0;
-        overflow: hidden;
       }
+
       .dashboard-kpis {
-        width: 35%;
-        flex: 0 0 35%;
+        width: 100%;
+        height: auto;
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: repeat(3, 1fr);
-        gap: 12px;
-        min-height: 0;
-        min-width: 0;
-        height: 100%;
+        grid-template-columns: 1fr 1.2fr;
+        gap: 16px;
+        overflow: visible;
       }
+
+      .dashboard-kpi-sec1 {
+        grid-template-columns: 1fr;
+      }
+
       .dashboard-charts {
-        flex: 1;
+        width: 100%;
+        flex: none;
+        height: auto;
+        min-height: 700px;
+        overflow: visible;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .dashboard-kpis {
         display: flex;
         flex-direction: column;
-        gap: 16px;
-        min-height: 0;
-        min-width: 0;
-        overflow: hidden;
-        height: 100%;
       }
 
-      /* Responsive Breakpoints */
-      @media (max-width: 1350px) {
-        .dashboard-kpis {
-          grid-template-columns: 1fr;
-          grid-template-rows: repeat(6, auto);
-        }
+      .dashboard-kpi-sec1 {
+        grid-template-columns: 1fr;
       }
 
-      @media (max-width: 1024px) {
-        .login-visual {
-          display: none;
-        }
-        .login-form-pane {
-          width: 100%;
-          padding: 32px 24px;
-        }
-        
-        .dashboard-wrap {
-          height: auto;
-          min-height: 100vh;
-          overflow: auto;
-          padding: 12px 16px;
-        }
-        .dashboard-body {
-          flex-direction: column;
-          height: auto;
-          overflow: visible;
-          gap: 16px;
-        }
-        .dashboard-kpis {
-          width: 100%;
-          height: auto;
-          grid-template-rows: auto;
-          grid-template-columns: 1fr 1fr;
-        }
-        .dashboard-charts {
-          width: 100%;
-          flex: none;
-          height: auto;
-          min-height: 700px;
-          overflow: visible;
-        }
+      .dashboard-charts {
+        min-height: 900px;
       }
+    }
+  </style>
+  <script type="module" crossorigin src="./assets/index-DrNf1kvU.js"></script>
+</head>
 
-      @media (max-width: 600px) {
-        .dashboard-kpis {
-          grid-template-columns: 1fr;
-        }
-        .dashboard-charts {
-          min-height: 900px;
-        }
-      }
-    </style>
-    <script type="module" crossorigin src="./assets/index-kqEzHf_B.js"></script>
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<body>
+  <div id="root"></div>
+</body>
+
 </html>

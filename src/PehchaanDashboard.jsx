@@ -138,10 +138,10 @@ function parseSheetCSV(csv) {
 }
 
 // ── Sparkline ─────────────────────────────────────────────────────────────────
-function Spark({ data, color }) {
-  if (!data || data.length < 2) return <div style={{width:54,height:20}}/>;
+function Spark({ data, color, width = 54, height = 20 }) {
+  if (!data || data.length < 2) return <div style={{width,height}}/>;
   return (
-    <ResponsiveContainer width={54} height={20}>
+    <ResponsiveContainer width={width} height={height}>
       <LineChart data={data} margin={{top:2,right:1,bottom:2,left:1}}>
         <Line type="monotone" dataKey="v" stroke={color} strokeWidth={2}
           dot={false} isAnimationActive={false}/>
@@ -169,14 +169,32 @@ function Seg({ options, value, onChange }) {
 }
 
 // ── KPI Card ─────────────────────────────────────────────────────────────────
-function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal, rows1, sparkData, selected, onClick, period, preset }) {
+function KpiCard({ cardKey, label, icon: Icon, color, value, badge, todayLabel, todayVal, rows1, sparkData, selected, onClick, period, preset }) {
+  let bgStyle = selected ? C.selBg : C.surface;
+  let borderStyle = `1.5px solid ${selected ? C.selBdr : C.border}`;
+  let shadowStyle = selected ? SHADOW_SEL : SHADOW;
+
+  if (cardKey === "revenue") {
+    bgStyle = selected 
+      ? `linear-gradient(135deg, #FBECE8 0%, #FFF5F2 100%)`
+      : `linear-gradient(135deg, #FDF7F5 0%, #FFFFFF 100%)`;
+    borderStyle = `1.5px solid ${selected ? C.revenue : "#F5DED9"}`;
+    shadowStyle = selected ? `0 4px 14px rgba(231, 126, 102, 0.15)` : SHADOW;
+  } else if (cardKey === "downloads") {
+    bgStyle = selected 
+      ? `linear-gradient(135deg, #EBF3EF 0%, #F5FAF7 100%)`
+      : `linear-gradient(135deg, #F4F8F6 0%, #FFFFFF 100%)`;
+    borderStyle = `1.5px solid ${selected ? C.android : "#DCE7E2"}`;
+    shadowStyle = selected ? `0 4px 14px rgba(74, 143, 112, 0.15)` : SHADOW;
+  }
+
   return (
     <div onClick={onClick} style={{
-      background: selected ? C.selBg : C.surface,
-      border: `1.5px solid ${selected ? C.selBdr : C.border}`,
+      background: bgStyle,
+      border: borderStyle,
       borderRadius: RADIUS, padding: "10px 16px",
       cursor: "pointer", userSelect: "none",
-      boxShadow: selected ? SHADOW_SEL : SHADOW,
+      boxShadow: shadowStyle,
       transition: "box-shadow .18s, border-color .18s, background .18s",
       display: "flex", flexDirection: "column", gap: 4,
       height: "100%", boxSizing: "border-box"
@@ -276,6 +294,257 @@ function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal,
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Combined Updates Card ───────────────────────────────────────────────────
+function CombinedUpdatesCard({ kpi, latest, pct, spark, selCards, toggleCard, periodLabel, preset }) {
+  const isTotalSelected = selCards.has("total");
+
+  const renderSubCard = (subKey, label, icon, color, value, badge, sparkData, todayVal, rows) => {
+    const isSelected = selCards.has(subKey);
+    const IconComponent = icon;
+
+    return (
+      <div 
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleCard(subKey);
+        }}
+        style={{
+          background: isSelected ? `${color}08` : "#FCFDFE",
+          border: `1.5px solid ${isSelected ? color : C.border}`,
+          borderRadius: 12,
+          padding: "14px 12px",
+          cursor: "pointer",
+          userSelect: "none",
+          boxShadow: isSelected ? `0 4px 12px ${color}15` : "none",
+          transition: "all .18s",
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+          minWidth: 0,
+          height: "100%"
+        }}
+      >
+        {/* Header Block (Consistent Layout, A Step Bigger) */}
+        <div style={{display: "flex", alignItems: "flex-start", gap: 8}}>
+          <div style={{
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            background: `${color}12`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            marginTop: 1
+          }}>
+            <IconComponent size={14} color={color} strokeWidth={2.2}/>
+          </div>
+          <div style={{display: "flex", flexDirection: "column", gap: 2, minWidth: 0, flex: 1}}>
+            <span style={{fontSize: 13, fontWeight: 700, color: C.sub, fontFamily: BODY, lineHeight: 1.2}}>{label}</span>
+            {badge != null && (
+              <div style={{display: "flex"}}>
+                <span style={{
+                  fontSize: 10, fontWeight: 600, fontFamily: BODY,
+                  color: badge >= 0 ? "#2B8C5B" : "#C2410C",
+                  background: badge >= 0 ? "#F0FDF4" : "#FFF7ED",
+                  border: `1px solid ${badge >= 0 ? "#D1FAE5" : "#FFEDD5"}`,
+                  borderRadius: 4, padding: "0px 4px", flexShrink: 0, whiteSpace: "nowrap"
+                }}>{badge >= 0 ? "▲" : "▼"} {Math.abs(badge).toFixed(1)}%</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Sparkline above the data (wider and taller) */}
+        <div style={{height: 24, width: "100%", position: "relative", overflow: "hidden", flexShrink: 0}}>
+          <Spark data={sparkData} color={color} width="100%" height={24} />
+        </div>
+
+        {/* Data: Value & Range/Today */}
+        <div style={{display: "flex", flexDirection: "column", gap: 2}}>
+          <span style={{fontFamily: HEAD, fontSize: 20, fontWeight: 800, color: C.ink, lineHeight: 1, whiteSpace: "nowrap"}}>{value}</span>
+          {preset === "today" ? (
+            <span style={{fontSize: 10, color: C.muted, fontFamily: BODY, whiteSpace: "nowrap"}}>Today: <strong style={{color: C.sub}}>{todayVal}</strong></span>
+          ) : (
+            <span style={{fontSize: 10, color: C.muted, fontFamily: BODY, whiteSpace: "nowrap"}}>
+              {preset === "all" ? "All time" : preset === "7" ? "Last Week" : preset === "30" ? "1 Month" : preset === "90" ? "3 Months" : preset === "cumulative" ? "Cumulative" : "Custom"}
+            </span>
+          )}
+        </div>
+
+        {/* Flex spacer to push bifurcations to bottom */}
+        <div style={{flex: 1}} />
+
+        {/* Breakdown rows (Bifurcations, Bigger Text Size) */}
+        {rows && rows.length > 0 && (
+          <div style={{borderTop: `1px solid ${C.border}`, paddingTop: 8, display: "flex", flexDirection: "column", gap: 5}}>
+            {rows.map((r, idx) => (
+              <div key={idx} style={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6}}>
+                <span style={{fontSize: 12, color: C.muted, fontFamily: BODY, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{r.label}</span>
+                <span style={{fontSize: 12, fontWeight: 600, color: C.sub, fontFamily: BODY, whiteSpace: "nowrap"}}>{r.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div style={{
+      background: C.surface,
+      border: `1.5px solid ${isTotalSelected ? C.selBdr : C.border}`,
+      borderRadius: RADIUS,
+      padding: "10px 16px",
+      display: "flex",
+      flexDirection: "column",
+      gap: 12,
+      boxShadow: isTotalSelected ? SHADOW_SEL : SHADOW,
+      transition: "box-shadow .18s, border-color .18s, background .18s",
+      userSelect: "none",
+      height: "100%"
+    }}>
+      {/* 1. Main KPI Row (Total Updates) - Styled exactly like KpiCard */}
+      <div 
+        onClick={() => toggleCard("total")}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          cursor: "pointer",
+          transition: "all .15s",
+          gap: 8,
+          paddingTop: 4
+        }}
+      >
+        {/* Title + Badge Stack */}
+        <div style={{display: "flex", alignItems: pct("total") != null ? "flex-start" : "center", gap: 8, minWidth: 0}}>
+          <div style={{
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            background: `${C.total}12`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            marginTop: pct("total") != null ? 2 : 0
+          }}>
+            <Activity size={16} color={C.total} strokeWidth={2.2}/>
+          </div>
+          <div style={{display: "flex", flexDirection: "column", gap: 2, minWidth: 0, flex: 1}}>
+            <span style={{fontSize: 13, fontWeight: 600, color: C.sub, fontFamily: BODY, letterSpacing: ".01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>Total Updates</span>
+            {pct("total") != null && (
+              <div style={{display: "flex"}}>
+                <span style={{
+                  fontSize: 11, fontWeight: 600, fontFamily: BODY,
+                  color: pct("total") >= 0 ? "#2B8C5B" : "#C2410C",
+                  background: pct("total") >= 0 ? "#F0FDF4" : "#FFF7ED",
+                  border: `1px solid ${pct("total") >= 0 ? "#D1FAE5" : "#FFEDD5"}`,
+                  borderRadius: 5, padding: "0px 5px", flexShrink: 0, whiteSpace: "nowrap"
+                }}>{pct("total") >= 0 ? "▲" : "▼"} {Math.abs(pct("total")).toFixed(1)}%</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Main Value + Sparkline + Today Chip */}
+        <div style={{display: "flex", flexDirection: "column", gap: 8, marginTop: 10}}>
+          <div style={{display: "flex", alignItems: "flex-start", justifySpacing: "space-between", gap: 12}}>
+            <div style={{fontFamily: HEAD, fontSize: 26, fontWeight: 700, color: C.ink, lineHeight: 1, fontVariantNumeric: "tabular-nums", letterSpacing: "-.03em", whiteSpace: "nowrap", flex: 1}}>{nfIN(kpi.total)}</div>
+            <div style={{flexShrink: 0, paddingTop: 2}}>
+              <Spark data={spark("total")} color={C.total} />
+            </div>
+          </div>
+          
+          {/* Today / Range Chip */}
+          <div style={{
+            display: "flex", flexDirection: "column",
+            background: "#F0F9FF", border: "1px solid #E0F2FE",
+            borderRadius: 5, padding: "5px 10px", width: "100%", boxSizing: "border-box", gap: 2
+          }}>
+            <span style={{
+              fontSize: 10, fontFamily: BODY, color: "#0284C7",
+              fontWeight: 600, textTransform: "uppercase", letterSpacing: ".04em", lineHeight: 1
+            }}>
+              {preset === "today" ? "Today" : "Selected Range"}
+            </span>
+            <div style={{display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8}}>
+              <span style={{fontSize: 12, fontWeight: 700, color: C.sub, fontFamily: BODY, lineHeight: 1}}>
+                {preset === "today" ? (latest ? nfIN(latest.total) : "—") : (
+                  preset === "all" ? "All time" :
+                  preset === "7" ? "Last Week" :
+                  preset === "30" ? "1 Month" :
+                  preset === "90" ? "3 Months" :
+                  preset === "cumulative" ? "Cumulative" : "Custom"
+                )}
+              </span>
+              {!(preset === "today") && periodLabel && (
+                <span style={{fontSize: 11, color: "#64748B", fontFamily: BODY, fontWeight: 400, lineHeight: 1}}>
+                  {periodLabel}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sub-cards Container in 3 Columns */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+        gap: 10,
+        flex: 1,
+        minHeight: 0
+      }}>
+        {/* Mobile */}
+        {renderSubCard(
+          "mobile", 
+          "Mobile Updates", 
+          Smartphone, 
+          C.mobile, 
+          nfIN(kpi.mobile), 
+          pct("mobile"), 
+          spark("mobile"), 
+          latest ? nfIN(latest.mobile) : "—",
+          [{label: "% of total", value: kpi.total ? `${(kpi.mobile/kpi.total*100).toFixed(1)}%` : "—"}]
+        )}
+
+        {/* Address */}
+        {renderSubCard(
+          "address", 
+          "Address Updates", 
+          MapPin, 
+          C.address, 
+          nfIN(kpi.address + kpi.hof), 
+          pct("address"), 
+          spark("address").map((d,i)=>({v:d.v+(spark("hof")[i]?.v||0)})), 
+          latest ? nfIN((latest.address||0)+(latest.hof||0)) : "—",
+          [
+            {label: "Regular", value: nfIN(kpi.address)},
+            {label: "HOF", value: nfIN(kpi.hof)}
+          ]
+        )}
+
+        {/* Email */}
+        {renderSubCard(
+          "email", 
+          "Email Updates", 
+          Mail, 
+          C.email, 
+          nfIN(kpi.email), 
+          pct("email"), 
+          spark("email"), 
+          latest ? nfIN(latest.email) : "—",
+          [
+            {label: "% of total", value: kpi.total ? `${(kpi.email/kpi.total*100).toFixed(1)}%` : "—"},
+            {label: "Excl. from revenue", value: "Yes"}
+          ]
+        )}
+      </div>
     </div>
   );
 }
@@ -666,8 +935,7 @@ export default function PehchaanDashboard() {
       {busy && !rows && (
         <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14}}>
           <RefreshCw size={36} color={C.teal} className="spin" strokeWidth={2}/>
-          <div style={{fontSize:20,fontWeight:700,color:C.ink,fontFamily:HEAD}}>Loading data…</div>
-          <div style={{fontSize:14,color:C.muted}}>Fetching the latest data from Google Sheet.</div>
+          <div style={{fontSize:20,fontWeight:700,color:C.ink,fontFamily:HEAD}}>loading data</div>
         </div>
       )}
 
@@ -676,6 +944,7 @@ export default function PehchaanDashboard() {
         <>
           {/* Controls bar */}
           <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",flexShrink:0,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"10px 16px",boxShadow:SHADOW,marginBottom:16}}>
+            {/* Left side: Trends & Range */}
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <span style={{fontSize:14,fontWeight:600,color:C.faint,letterSpacing:".05em",textTransform:"uppercase",fontFamily:BODY}}>Trends</span>
               <Seg value={preset} onChange={setPreset} options={[
@@ -688,11 +957,6 @@ export default function PehchaanDashboard() {
               ]}/>
             </div>
             <div style={{width:1,height:22,background:C.border}}/>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <span style={{fontSize:14,fontWeight:600,color:C.faint,letterSpacing:".05em",textTransform:"uppercase",fontFamily:BODY}}>Group by</span>
-              <Seg value={gran} onChange={setGran} options={[{v:"daily",l:"Day"},{v:"weekly",l:"Week"},{v:"monthly",l:"Month"}]}/>
-            </div>
-            <div style={{width:1,height:22,background:C.border}}/>
             <div style={{display:"flex",alignItems:"center",gap:7}}>
               <span style={{fontSize:14,fontWeight:600,color:C.faint,letterSpacing:".05em",textTransform:"uppercase",fontFamily:BODY}}>Range</span>
               <input type="date" value={from} min={DATE_MIN} max={to||bounds.max}
@@ -703,69 +967,65 @@ export default function PehchaanDashboard() {
                 onChange={e=>{setTo(e.target.value); setPresetState("");}}
                 style={{padding:"6px 10px",border:`1px solid ${C.border}`,borderRadius:7,fontFamily:MONO,fontSize:14,color:C.sub,outline:"none"}}/>
             </div>
-            {isFilterChanged && (
-              <div style={{marginLeft:"auto",display:"flex",alignItems:"center"}}>
-                <button onClick={handleResetFilters} style={{
-                  fontSize:13,fontWeight:600,color:"#EF4444",background:"#FEF2F2",
-                  border:"1px solid #FEE2E2",borderRadius:8,padding:"6px 14px",
-                  cursor:"pointer",fontFamily:BODY,transition:"all .15s"
-                }}>Reset Filters</button>
+
+            {/* Spacer */}
+            <div style={{flex:1}}/>
+
+            {/* Right side: Group by & Reset Filters */}
+            <div style={{display:"flex",alignItems:"center",gap:12}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:14,fontWeight:600,color:C.faint,letterSpacing:".05em",textTransform:"uppercase",fontFamily:BODY}}>Group by</span>
+                <Seg value={gran} onChange={setGran} options={[{v:"daily",l:"Day"},{v:"weekly",l:"Week"},{v:"monthly",l:"Month"}]}/>
               </div>
-            )}
+              {isFilterChanged && (
+                <>
+                  <div style={{width:1,height:22,background:C.border}}/>
+                  <button onClick={handleResetFilters} style={{
+                    fontSize:13,fontWeight:600,color:"#EF4444",background:"#FEF2F2",
+                    border:"1px solid #FEE2E2",borderRadius:8,padding:"6px 14px",
+                    cursor:"pointer",fontFamily:BODY,transition:"all .15s"
+                  }}>Reset Filters</button>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="dashboard-body">
 
             {/* ── LEFT: KPI CARDS (1/3) ── */}
             <div className="dashboard-kpis">
+              {/* Section 1: Financial & Adoption (Revenue & Downloads) */}
+              <div className="dashboard-kpi-sec1">
+                <KpiCard cardKey="revenue" label="Total Revenue" icon={IndianRupee} color={C.revenue}
+                  value={`₹${toCr(kpi.revenue)} Cr`} badge={pct("base")}
+                  todayLabel="Today" todayVal={latest?`₹${Math.round((latest.base||0)*RATE_PER_UPDATE).toLocaleString("en-IN")}`:"—"}
+                  rows1={[{label:"Billable updates",value:nfIN(kpi.base)},{label:"Rate / update",value:`₹${RATE_PER_UPDATE}`}]}
+                  sparkData={spark("base")}
+                  selected={selCards.has("revenue")} onClick={()=>toggleCard("revenue")}
+                  period={periodLabel} preset={preset}/>
 
-              <KpiCard cardKey="revenue" label="Total Revenue" icon={IndianRupee} color={C.revenue}
-                value={`₹${toCr(kpi.revenue)} Cr`} badge={pct("base")}
-                todayLabel="Today" todayVal={latest?`₹${Math.round((latest.base||0)*RATE_PER_UPDATE).toLocaleString("en-IN")}`:"—"}
-                rows1={[{label:"Billable updates",value:nfIN(kpi.base)},{label:"Rate / update",value:`₹${RATE_PER_UPDATE}`}]}
-                sparkData={spark("base")}
-                selected={selCards.has("revenue")} onClick={()=>toggleCard("revenue")}
-                period={periodLabel} preset={preset}/>
+                <KpiCard cardKey="downloads" label="App Downloads" icon={Download} color={C.android}
+                  value={nfIN(kpi.android+kpi.ios)} badge={pct("android")}
+                  todayLabel="Today" todayVal={latest?nfIN((latest.android||0)+(latest.ios||0)):"—"}
+                  rows1={[{label:"Android",value:nfIN(kpi.android)},{label:"iOS",value:nfIN(kpi.ios)}]}
+                  sparkData={spark("android").map((d,i)=>({v:d.v+(spark("ios")[i]?.v||0)}))}
+                  selected={selCards.has("downloads")} onClick={()=>toggleCard("downloads")}
+                  period={periodLabel} preset={preset}/>
+              </div>
 
-              <KpiCard cardKey="downloads" label="App Downloads" icon={Download} color={C.android}
-                value={nfIN(kpi.android+kpi.ios)} badge={pct("android")}
-                todayLabel="Today" todayVal={latest?nfIN((latest.android||0)+(latest.ios||0)):"—"}
-                rows1={[{label:"Android",value:nfIN(kpi.android)},{label:"iOS",value:nfIN(kpi.ios)}]}
-                sparkData={spark("android").map((d,i)=>({v:d.v+(spark("ios")[i]?.v||0)}))}
-                selected={selCards.has("downloads")} onClick={()=>toggleCard("downloads")}
-                period={periodLabel} preset={preset}/>
-
-              <KpiCard cardKey="total" label="Total Updates" icon={Activity} color={C.total}
-                value={nfIN(kpi.total)} badge={pct("total")}
-                todayLabel="Today" todayVal={latest?nfIN(latest.total):"—"}
-                rows1={[{label:"Billable",value:nfIN(kpi.base)},{label:"Email",value:nfIN(kpi.email)}]}
-                sparkData={spark("total")}
-                selected={selCards.has("total")} onClick={()=>toggleCard("total")}
-                period={periodLabel} preset={preset}/>
-
-              <KpiCard cardKey="mobile" label="Mob. No. Updates" icon={Smartphone} color={C.mobile}
-                value={nfIN(kpi.mobile)} badge={pct("mobile")}
-                todayLabel="Today" todayVal={latest?nfIN(latest.mobile):"—"}
-                rows1={[{label:"% of total",value:kpi.total?`${(kpi.mobile/kpi.total*100).toFixed(1)}%`:"—"}]}
-                sparkData={spark("mobile")}
-                selected={selCards.has("mobile")} onClick={()=>toggleCard("mobile")}
-                period={periodLabel} preset={preset}/>
-
-              <KpiCard cardKey="address" label="Address Updates" icon={MapPin} color={C.address}
-                value={nfIN(kpi.address+kpi.hof)} badge={pct("address")}
-                todayLabel="Today" todayVal={latest?nfIN((latest.address||0)+(latest.hof||0)):"—"}
-                rows1={[{label:"Regular",value:nfIN(kpi.address)},{label:"HOF",value:nfIN(kpi.hof)}]}
-                sparkData={spark("address").map((d,i)=>({v:d.v+(spark("hof")[i]?.v||0)}))}
-                selected={selCards.has("address")} onClick={()=>toggleCard("address")}
-                period={periodLabel} preset={preset}/>
-
-              <KpiCard cardKey="email" label="Email Updates" icon={Mail} color={C.email}
-                value={nfIN(kpi.email)} badge={pct("email")}
-                todayLabel="Today" todayVal={latest?nfIN(latest.email):"—"}
-                rows1={[{label:"% of total",value:kpi.total?`${(kpi.email/kpi.total*100).toFixed(1)}%`:"—"},{label:"Excl. from revenue",value:"Yes"}]}
-                sparkData={spark("email")}
-                selected={selCards.has("email")} onClick={()=>toggleCard("email")}
-                period={periodLabel} preset={preset}/>
+              {/* Section 2: Updates operations (Combined card) */}
+              <div className="dashboard-kpi-sec2">
+                <CombinedUpdatesCard 
+                  kpi={kpi} 
+                  latest={latest} 
+                  pct={pct} 
+                  spark={spark} 
+                  selCards={selCards} 
+                  toggleCard={toggleCard} 
+                  periodLabel={periodLabel} 
+                  preset={preset}
+                />
+              </div>
             </div>
 
             {/* ── RIGHT: GRAPH SECTION (2/3) ── */}
