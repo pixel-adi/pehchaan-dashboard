@@ -18,19 +18,7 @@ import mandalaImg from "./mandala.png";
 const SHEET_ID  = "1pwUb9tNTzqGO2utAzF-oLRNiCsENK596Mj-ff8etGzA";
 const SHEET_CSV_DEV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
 const DATE_MIN  = "2025-11-25";
-const ACCESS_CODE_HASHES = [
-  "617802c3453aac841fbed3bc0269a48f3d44da26942e790a71e0c44a1f60a196", // "Pehchaan@2026"
-  "0cf19586e65d6f546478af43de4981e83131ad9ae41c7d77841d2d3a907fba9d"  // "Pehchan@2026"
-];
 const RATE_PER_UPDATE  = 75;
-
-// Cryptographic hash helper using Web Crypto API
-async function sha256(message) {
-  const msgBuffer = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-}
 
 // ── design tokens (premium, low-fatigue, toned-down tricolor theme) ────────────
 const C = {
@@ -592,18 +580,47 @@ export default function PehchaanDashboard() {
   const [to,       setTo]       = useState("");
   const [preset,   setPresetState] = useState("all");
   const [selCards, setSelCards] = useState(new Set());
-  const [gate,     setGate]     = useState(ACCESS_CODE_HASHES ? false : true);
+  const [gate,     setGate]     = useState(false);
   const [pw,       setPw]       = useState("");
   const [pwErr,    setPwErr]    = useState(false);
   const [showPw,   setShowPw]   = useState(false);
 
   const tryUnlock = async () => {
-    const hash = await sha256(pw);
-    if (ACCESS_CODE_HASHES.includes(hash)) {
+    setBusy(true); setPwErr(false); setError("");
+    try {
+      let url = "/api/data";
+      let options = {
+        headers: { "x-passcode": pw },
+        cache: "default"
+      };
+
+      if (import.meta.env.DEV) {
+        url = SHEET_CSV_DEV;
+        options = { cache: "default" };
+        if (pw !== "Pehchaan@2026" && pw !== "Pehchan@2026") {
+          throw new Error("401");
+        }
+      }
+
+      const res = await fetch(url, options);
+      if (res.status === 401) throw new Error("401");
+      if (!res.ok) throw new Error(`HTTP ${res.status} — failed to load data`);
+
+      const parsed = parseSheetCSV(await res.text());
+      setRows(parsed); setLastUpd(new Date());
+      const max = parsed[parsed.length-1].date;
+      
+      setFrom(f => f || DATE_MIN);
+      setTo(t => t || max);
       setGate(true);
-      setPwErr(false);
-    } else {
-      setPwErr(true);
+    } catch(e) {
+      if (e.message === "401") {
+        setPwErr(true);
+      } else {
+        setError(e.message || "Could not fetch sheet");
+      }
+    } finally {
+      setBusy(false);
     }
   };
   const logout = () => { setGate(false); setPw(""); };
