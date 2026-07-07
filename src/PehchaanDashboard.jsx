@@ -400,10 +400,31 @@ export default function PehchaanDashboard() {
     setPresetState(p);
     const max = new Date(bounds.max+"T00:00:00");
     const back = days => { const d=new Date(max); d.setDate(d.getDate()-days+1); const lo=d.toISOString().slice(0,10); return lo<DATE_MIN?DATE_MIN:lo; };
-    if (p==="7"){setFrom(back(7));setTo(bounds.max);}
-    else if (p==="30"){setFrom(back(30));setTo(bounds.max);}
-    else if (p==="90"){setFrom(back(90));setTo(bounds.max);}
-    else{setFrom(DATE_MIN);setTo(bounds.max);}
+    if (p === "today") {
+      setTrend("daily");
+      setFrom(bounds.max);
+      setTo(bounds.max);
+    } else if (p === "7") {
+      setTrend("daily");
+      setFrom(back(7));
+      setTo(bounds.max);
+    } else if (p === "30") {
+      setTrend("daily");
+      setFrom(back(30));
+      setTo(bounds.max);
+    } else if (p === "90") {
+      setTrend("daily");
+      setFrom(back(90));
+      setTo(bounds.max);
+    } else if (p === "cumulative") {
+      setTrend("cumulative");
+      setFrom(DATE_MIN);
+      setTo(bounds.max);
+    } else {
+      setTrend("daily");
+      setFrom(DATE_MIN);
+      setTo(bounds.max);
+    }
   };
 
   const toggleCard = ck => setSelCards(prev => { const n=new Set(prev); n.has(ck)?n.delete(ck):n.add(ck); return n; });
@@ -600,8 +621,15 @@ export default function PehchaanDashboard() {
           {/* Controls bar */}
           <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",flexShrink:0,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"10px 16px",boxShadow:SHADOW,marginBottom:16}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <span style={{fontSize:14,fontWeight:600,color:C.faint,letterSpacing:".05em",textTransform:"uppercase",fontFamily:BODY}}>Trend</span>
-              <Seg value={trend} onChange={setTrend} options={[{v:"daily",l:"Daily"},{v:"cumulative",l:"Cumulative"}]}/>
+              <span style={{fontSize:14,fontWeight:600,color:C.faint,letterSpacing:".05em",textTransform:"uppercase",fontFamily:BODY}}>Trends</span>
+              <Seg value={preset} onChange={setPreset} options={[
+                {v:"all",l:"All"},
+                {v:"today",l:"Today"},
+                {v:"7",l:"Last Week"},
+                {v:"30",l:"1 Month"},
+                {v:"90",l:"3 Months"},
+                {v:"cumulative",l:"Cumulative"}
+              ]}/>
             </div>
             <div style={{width:1,height:22,background:C.border}}/>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -696,21 +724,8 @@ export default function PehchaanDashboard() {
                   <span style={{fontSize:14,color:C.faint,fontFamily:MONO,fontWeight:500}}>{trend} · {gran}</span>
                 </div>
                 
-                {/* Presets and Legend Wrapper */}
+                {/* Legend Wrapper */}
                 <div style={{display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
-                  {/* Presets */}
-                  <div style={{display:"flex",gap:4,alignItems:"center",background:"#EEF1F6",borderRadius:8,padding:2.5}}>
-                    {[["7","7D"],["30","30D"],["90","90D"],["all","All"]].map(([v,l])=>(
-                      <button key={v} onClick={()=>setPreset(v)} style={{
-                        fontSize:14,fontWeight:600,color:preset===v?C.ink:C.sub,
-                        background:preset===v?"#fff":"transparent",
-                        border:"none",borderRadius:6,padding:"5px 12px",cursor:"pointer",fontFamily:BODY,
-                        boxShadow:preset===v?"0 1px 3px rgba(0,0,0,.08)":"none",
-                        transition:"all .12s",
-                      }}>{l}</button>
-                    ))}
-                  </div>
-
                   {/* series legend dots */}
                   <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
                     {lineDef.filter(l=>effectiveLines[l.key]).map(l=>(
