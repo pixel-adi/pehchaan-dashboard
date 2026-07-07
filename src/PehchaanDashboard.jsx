@@ -174,11 +174,11 @@ function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal,
     <div onClick={onClick} style={{
       background: selected ? C.selBg : C.surface,
       border: `1.5px solid ${selected ? C.selBdr : C.border}`,
-      borderRadius: RADIUS, padding: "14px 16px",
+      borderRadius: RADIUS, padding: "16px 18px",
       cursor: "pointer", userSelect: "none",
       boxShadow: selected ? SHADOW_SEL : SHADOW,
       transition: "box-shadow .18s, border-color .18s, background .18s",
-      display: "flex", flexDirection: "column", gap: 10,
+      display: "flex", flexDirection: "column", gap: 12,
       height: "100%", boxSizing: "border-box"
     }}>
       {/* Title + Badge (Toned down headings) */}

@@ -61,7 +61,7 @@
       .dashboard-body {
         flex: 1;
         display: flex;
-        gap: 12px;
+        gap: 16px;
         min-height: 0;
         min-width: 0;
         overflow: hidden;
@@ -72,15 +72,17 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         grid-template-rows: repeat(3, 1fr);
-        gap: 12px;
+        gap: 16px;
         min-height: 0;
         min-width: 0;
+        overflow-y: auto;
+        padding-right: 2px; /* Small buffer for scrollbar */
       }
       .dashboard-charts {
         flex: 1;
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 16px;
         min-height: 0;
         min-width: 0;
         overflow: hidden;
