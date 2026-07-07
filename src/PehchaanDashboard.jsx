@@ -179,9 +179,10 @@ function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal,
       boxShadow: selected ? SHADOW_SEL : SHADOW,
       transition: "box-shadow .18s, border-color .18s, background .18s",
       display: "flex", flexDirection: "column", gap: 10,
+      height: "100%", boxSizing: "border-box"
     }}>
       {/* Title + Badge (Toned down headings) */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <div style={{width:28,height:28,borderRadius:8,background:`${color}12`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
             <Icon size={14} color={color} strokeWidth={2.2}/>
@@ -200,7 +201,7 @@ function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal,
       </div>
 
       {/* Main Value + Sparkline */}
-      <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",gap:8}}>
+      <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",gap:8,flex:1}}>
         <div>
           <div style={{fontFamily:HEAD,fontSize:28,fontWeight:700,color:C.ink,lineHeight:1,fontVariantNumeric:"tabular-nums",letterSpacing:"-.03em"}}>{value}</div>
           {todayLabel && (
@@ -214,7 +215,7 @@ function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal,
 
       {/* Breakdown Rows */}
       {rows1 && rows1.length > 0 && (
-        <div style={{borderTop:`1px solid ${C.border}`,paddingTop:10,display:"flex",flexDirection:"column",gap:6}}>
+        <div style={{borderTop:`1px solid ${C.border}`,paddingTop:10,display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
           {rows1.map((r,i) => (
             <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <span style={{fontSize:14,color:C.muted,fontFamily:BODY,fontWeight:400}}>{r.label}</span>
