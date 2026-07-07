@@ -400,7 +400,7 @@ export default function PehchaanDashboard() {
   const fmtRefresh = d => d?.toLocaleString("en-IN",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
 
   const lineDef = [
-    {key:"mobile", name:"Mobile",           color:C.mobile },
+    {key:"mobile", name:"Mobile Number updates", color:C.mobile },
     {key:"address",name:"Address (Regular)",color:C.address},
     {key:"hof",    name:"Address (HOF)",    color:C.hof    },
     {key:"email",  name:"Email",            color:C.email  },
@@ -408,7 +408,7 @@ export default function PehchaanDashboard() {
   ];
 
   const activeTitle = selCards.size===0 ? "All metrics" :
-    [...selCards].map(k=>({revenue:"Revenue",downloads:"Downloads",total:"Total Updates",mobile:"Mobile",address:"Address",email:"Email"}[k])).join(" · ");
+    [...selCards].map(k=>({revenue:"Revenue",downloads:"Downloads",total:"Total Updates",mobile:"Mobile Number updates",address:"Address",email:"Email"}[k])).join(" · ");
 
   // ── gate ──────────────────────────────────────────────────────────────────
   // ── gate ──────────────────────────────────────────────────────────────────
@@ -611,7 +611,7 @@ export default function PehchaanDashboard() {
               sparkData={spark("total")}
               selected={selCards.has("total")} onClick={()=>toggleCard("total")}/>
 
-            <KpiCard cardKey="mobile" label="Mobile Updates" icon={Smartphone} color={C.mobile}
+            <KpiCard cardKey="mobile" label="Mobile Number updates" icon={Smartphone} color={C.mobile}
               value={nfIN(kpi.mobile)} badge={pct("mobile")}
               todayLabel="Today" todayVal={latest?nfIN(latest.mobile):"—"}
               rows1={[{label:"% of total",value:kpi.total?`${(kpi.mobile/kpi.total*100).toFixed(1)}%`:"—"}]}
