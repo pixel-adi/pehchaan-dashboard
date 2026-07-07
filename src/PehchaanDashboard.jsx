@@ -580,8 +580,12 @@ export default function PehchaanDashboard() {
   const [to,       setTo]       = useState("");
   const [preset,   setPresetState] = useState("all");
   const [selCards, setSelCards] = useState(new Set());
-  const [gate,     setGate]     = useState(false);
-  const [pw,       setPw]       = useState("");
+  const [gate,     setGate]     = useState(() => {
+    return sessionStorage.getItem("pehchaan_authorized") === "true";
+  });
+  const [pw,       setPw]       = useState(() => {
+    return sessionStorage.getItem("pehchaan_passcode") || "";
+  });
   const [pwErr,    setPwErr]    = useState(false);
   const [showPw,   setShowPw]   = useState(false);
 
@@ -612,6 +616,9 @@ export default function PehchaanDashboard() {
       
       setFrom(f => f || DATE_MIN);
       setTo(t => t || max);
+      
+      sessionStorage.setItem("pehchaan_authorized", "true");
+      sessionStorage.setItem("pehchaan_passcode", pw);
       setGate(true);
     } catch(e) {
       if (e.message === "401") {
@@ -623,7 +630,12 @@ export default function PehchaanDashboard() {
       setBusy(false);
     }
   };
-  const logout = () => { setGate(false); setPw(""); };
+  const logout = () => {
+    sessionStorage.removeItem("pehchaan_authorized");
+    sessionStorage.removeItem("pehchaan_passcode");
+    setGate(false);
+    setPw("");
+  };
 
   const fetchSheet = useCallback(async (bust=false) => {
     setBusy(true); setError("");
@@ -697,6 +709,7 @@ export default function PehchaanDashboard() {
   }, [selCards]);
 
   const showDl = selCards.size===0 || selCards.has("downloads");
+  const showTrends = !(selCards.has("downloads") && selCards.size === 1);
 
   const mkChartData = (run, buckets, trend, fields) =>
     buckets.map(b => {
@@ -1059,43 +1072,45 @@ export default function PehchaanDashboard() {
             <div className="dashboard-charts">
 
               {/* Update trends chart */}
-              <div style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS,display:"flex",flexDirection:"column",minHeight:0,minWidth:0,overflow:"hidden",padding:"16px",boxShadow:SHADOW}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexShrink:0,flexWrap:"wrap",gap:12}}>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <TrendingUp size={18} color={C.teal} strokeWidth={2.2}/>
-                  <span style={{fontSize:20,fontWeight:700,color:C.ink,fontFamily:HEAD}}>{activeTitle}</span>
-                  <span style={{fontSize:14,color:C.faint,fontFamily:MONO,fontWeight:500}}>{gran}</span>
-                </div>
-                
-                {/* Legend Wrapper */}
-                <div style={{display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
-                  {/* series legend dots */}
-                  <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-                    {lineDef.filter(l=>effectiveLines[l.key]).map(l=>(
-                      <div key={l.key} style={{display:"flex",alignItems:"center",gap:6,fontSize:14,color:C.sub,fontWeight:500,fontFamily:BODY}}>
-                        <span style={{width:10,height:10,borderRadius:"50%",background:l.color,flexShrink:0}}/>
-                        {l.name}
+              {showTrends && (
+                <div style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS,display:"flex",flexDirection:"column",minHeight:0,minWidth:0,overflow:"hidden",padding:"16px",boxShadow:SHADOW}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexShrink:0,flexWrap:"wrap",gap:12}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <TrendingUp size={18} color={C.teal} strokeWidth={2.2}/>
+                      <span style={{fontSize:20,fontWeight:700,color:C.ink,fontFamily:HEAD}}>{activeTitle}</span>
+                      <span style={{fontSize:14,color:C.faint,fontFamily:MONO,fontWeight:500}}>{gran}</span>
+                    </div>
+                    
+                    {/* Legend Wrapper */}
+                    <div style={{display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+                      {/* series legend dots */}
+                      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                        {lineDef.filter(l=>effectiveLines[l.key]).map(l=>(
+                          <div key={l.key} style={{display:"flex",alignItems:"center",gap:6,fontSize:14,color:C.sub,fontWeight:500,fontFamily:BODY}}>
+                            <span style={{width:10,height:10,borderRadius:"50%",background:l.color,flexShrink:0}}/>
+                            {l.name}
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+                  </div>
+                  <div style={{flex:1,minHeight:0}}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={chartData} margin={{top:4,right:8,left:0,bottom:0}}>
+                        <CartesianGrid strokeDasharray="4 4" stroke="#F3F4F6" vertical={false}/>
+                        <XAxis dataKey="label" tick={{fontSize:14,fill:C.faint,fontFamily:MONO}} tickMargin={6} minTickGap={32} axisLine={{stroke:C.border}} tickLine={false}/>
+                        <YAxis tick={{fontSize:14,fill:C.faint,fontFamily:MONO}} tickFormatter={fmtK} axisLine={false} tickLine={false} width={48}/>
+                        <Tooltip content={<ChartTooltip isRevenue={selCards.has("revenue")}/>}/>
+                        {lineDef.filter(l=>effectiveLines[l.key]).map(l=>(
+                          <Line key={l.key} type="monotone" dataKey={l.key} name={l.name} stroke={l.color}
+                            strokeWidth={l.key==="total"?2.8:2.2} dot={false} activeDot={{r:6,strokeWidth:0}}
+                            isAnimationActive={true} animationDuration={400} animationEasing="ease-out"/>
+                        ))}
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
-              </div>
-              <div style={{flex:1,minHeight:0}}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{top:4,right:8,left:0,bottom:0}}>
-                    <CartesianGrid strokeDasharray="4 4" stroke="#F3F4F6" vertical={false}/>
-                    <XAxis dataKey="label" tick={{fontSize:14,fill:C.faint,fontFamily:MONO}} tickMargin={6} minTickGap={32} axisLine={{stroke:C.border}} tickLine={false}/>
-                    <YAxis tick={{fontSize:14,fill:C.faint,fontFamily:MONO}} tickFormatter={fmtK} axisLine={false} tickLine={false} width={48}/>
-                    <Tooltip content={<ChartTooltip isRevenue={selCards.has("revenue")}/>}/>
-                    {lineDef.filter(l=>effectiveLines[l.key]).map(l=>(
-                      <Line key={l.key} type="monotone" dataKey={l.key} name={l.name} stroke={l.color}
-                        strokeWidth={l.key==="total"?2.8:2.2} dot={false} activeDot={{r:6,strokeWidth:0}}
-                        isAnimationActive={true} animationDuration={400} animationEasing="ease-out"/>
-                    ))}
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+              )}
 
             {/* Downloads chart */}
             {showDl && (
