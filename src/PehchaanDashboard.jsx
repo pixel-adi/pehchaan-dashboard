@@ -169,7 +169,7 @@ function Seg({ options, value, onChange }) {
 }
 
 // ── KPI Card ─────────────────────────────────────────────────────────────────
-function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal, rows1, sparkData, selected, onClick }) {
+function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal, rows1, sparkData, selected, onClick, period }) {
   return (
     <div onClick={onClick} style={{
       background: selected ? C.selBg : C.surface,
@@ -205,8 +205,15 @@ function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal,
         <div>
           <div style={{fontFamily:HEAD,fontSize:28,fontWeight:700,color:C.ink,lineHeight:1,fontVariantNumeric:"tabular-nums",letterSpacing:"-.03em"}}>{value}</div>
           {todayLabel && (
-            <div style={{fontSize:14,color:C.muted,marginTop:6,fontFamily:BODY,fontWeight:400}}>
-              {todayLabel}&nbsp;<span style={{color:C.sub,fontWeight:600}}>{todayVal}</span>
+            <div style={{fontSize:14,color:C.muted,marginTop:6,fontFamily:BODY,fontWeight:400,display:"flex",flexDirection:"column",gap:2}}>
+              <div>
+                {todayLabel}&nbsp;<span style={{color:C.sub,fontWeight:600}}>{todayVal}</span>
+              </div>
+              {period && (
+                <div style={{fontSize:12,color:C.muted,fontWeight:500,letterSpacing:".01em"}}>
+                  Period: {period}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -269,7 +276,7 @@ export default function PehchaanDashboard() {
   const [gran,     setGran]     = useState("daily");
   const [from,     setFrom]     = useState("");
   const [to,       setTo]       = useState("");
-  const [preset,   setPresetState] = useState("7");
+  const [preset,   setPresetState] = useState("all");
   const [selCards, setSelCards] = useState(new Set());
   const [gate,     setGate]     = useState(ACCESS_CODE_HASHES ? false : true);
   const [pw,       setPw]       = useState("");
@@ -297,13 +304,7 @@ export default function PehchaanDashboard() {
       setRows(parsed); setLastUpd(new Date());
       const max = parsed[parsed.length-1].date;
       
-      // Default to last 1 week of latest data
-      const maxD = new Date(max + "T00:00:00");
-      maxD.setDate(maxD.getDate() - 6);
-      const lastWeekStr = maxD.toISOString().slice(0, 10);
-      const defaultFrom = lastWeekStr < DATE_MIN ? DATE_MIN : lastWeekStr;
-      
-      setFrom(f => f || defaultFrom);
+      setFrom(f => f || DATE_MIN);
       setTo(t => t || max);
     } catch(e) { setError(e.message||"Could not fetch sheet"); }
     finally { setBusy(false); }
@@ -319,6 +320,15 @@ export default function PehchaanDashboard() {
       return { ...r, email, total:base+email, base, android:r.android||0, ios:r.ios||0 };
     });
   }, [rows, from, to]);
+
+  const periodLabel = useMemo(() => {
+    if (preset === "all" || !from || !to) return "All time";
+    const fmt = dStr => {
+      const d = new Date(dStr + "T00:00:00");
+      return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+    };
+    return `${fmt(from)} – ${fmt(to)}`;
+  }, [from, to, preset]);
 
   const buckets = useMemo(() => {
     if (!inRange.length) return [];
@@ -365,12 +375,12 @@ export default function PehchaanDashboard() {
   const hasDl = useMemo(() => buckets.some(b=>b.android||b.ios), [buckets]);
 
   const kpi = useMemo(() => {
-    if (!rows) return {total:0,mobile:0,address:0,hof:0,email:0,base:0,revenue:0,android:0,ios:0};
-    const s = f => rows.reduce((a,r)=>a+(r[f]||0),0);
-    const mobile=s("mobile"),address=s("address"),hof=s("hof"),email=s("emailSheet");
+    if (!inRange || !inRange.length) return {total:0,mobile:0,address:0,hof:0,email:0,base:0,revenue:0,android:0,ios:0};
+    const s = f => inRange.reduce((a,r)=>a+(r[f]||0),0);
+    const mobile=s("mobile"),address=s("address"),hof=s("hof"),email=s("email");
     const base = mobile+address+hof;
     return {total:base+email,mobile,address,hof,email,base,revenue:base*RATE_PER_UPDATE,android:s("android"),ios:s("ios")};
-  }, [rows]);
+  }, [inRange]);
 
   const pct = useCallback(field => {
     if (inRange.length < 4) return null;
@@ -586,92 +596,99 @@ export default function PehchaanDashboard() {
 
       {/* ── MAIN LAYOUT ── */}
       {rows && (
-        <div className="dashboard-body">
-
-          {/* ── LEFT: KPI CARDS (1/3) ── */}
-          <div className="dashboard-kpis">
-
-            <KpiCard cardKey="revenue" label="Total Revenue" icon={IndianRupee} color={C.revenue}
-              value={`₹${toCr(kpi.revenue)} Cr`} badge={pct("base")}
-              todayLabel="Today" todayVal={latest?`₹${Math.round((latest.base||0)*RATE_PER_UPDATE).toLocaleString("en-IN")}`:"—"}
-              rows1={[{label:"Billable updates",value:nfIN(kpi.base)},{label:"Rate / update",value:`₹${RATE_PER_UPDATE}`}]}
-              sparkData={spark("base")}
-              selected={selCards.has("revenue")} onClick={()=>toggleCard("revenue")}/>
-
-            <KpiCard cardKey="downloads" label="App Downloads" icon={Download} color={C.android}
-              value={nfIN(kpi.android+kpi.ios)} badge={pct("android")}
-              todayLabel="Today" todayVal={latest?nfIN((latest.android||0)+(latest.ios||0)):"—"}
-              rows1={[{label:"Android",value:nfIN(kpi.android)},{label:"iOS",value:nfIN(kpi.ios)}]}
-              sparkData={spark("android").map((d,i)=>({v:d.v+(spark("ios")[i]?.v||0)}))}
-              selected={selCards.has("downloads")} onClick={()=>toggleCard("downloads")}/>
-
-            <KpiCard cardKey="total" label="Total Updates" icon={Activity} color={C.total}
-              value={nfIN(kpi.total)} badge={pct("total")}
-              todayLabel="Today" todayVal={latest?nfIN(latest.total):"—"}
-              rows1={[{label:"Billable",value:nfIN(kpi.base)},{label:"Email",value:nfIN(kpi.email)}]}
-              sparkData={spark("total")}
-              selected={selCards.has("total")} onClick={()=>toggleCard("total")}/>
-
-            <KpiCard cardKey="mobile" label="Mob. No. Updates" icon={Smartphone} color={C.mobile}
-              value={nfIN(kpi.mobile)} badge={pct("mobile")}
-              todayLabel="Today" todayVal={latest?nfIN(latest.mobile):"—"}
-              rows1={[{label:"% of total",value:kpi.total?`${(kpi.mobile/kpi.total*100).toFixed(1)}%`:"—"}]}
-              sparkData={spark("mobile")}
-              selected={selCards.has("mobile")} onClick={()=>toggleCard("mobile")}/>
-
-            <KpiCard cardKey="address" label="Address Updates" icon={MapPin} color={C.address}
-              value={nfIN(kpi.address+kpi.hof)} badge={pct("address")}
-              todayLabel="Today" todayVal={latest?nfIN((latest.address||0)+(latest.hof||0)):"—"}
-              rows1={[{label:"Regular",value:nfIN(kpi.address)},{label:"HOF",value:nfIN(kpi.hof)}]}
-              sparkData={spark("address").map((d,i)=>({v:d.v+(spark("hof")[i]?.v||0)}))}
-              selected={selCards.has("address")} onClick={()=>toggleCard("address")}/>
-
-            <KpiCard cardKey="email" label="Email Updates" icon={Mail} color={C.email}
-              value={nfIN(kpi.email)} badge={pct("email")}
-              todayLabel="Today" todayVal={latest?nfIN(latest.email):"—"}
-              rows1={[{label:"% of total",value:kpi.total?`${(kpi.email/kpi.total*100).toFixed(1)}%`:"—"},{label:"Excl. from revenue",value:"Yes"}]}
-              sparkData={spark("email")}
-              selected={selCards.has("email")} onClick={()=>toggleCard("email")}/>
+        <>
+          {/* Controls bar */}
+          <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",flexShrink:0,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"10px 16px",boxShadow:SHADOW,marginBottom:16}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontSize:14,fontWeight:600,color:C.faint,letterSpacing:".05em",textTransform:"uppercase",fontFamily:BODY}}>Trend</span>
+              <Seg value={trend} onChange={setTrend} options={[{v:"daily",l:"Daily"},{v:"cumulative",l:"Cumulative"}]}/>
+            </div>
+            <div style={{width:1,height:22,background:C.border}}/>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontSize:14,fontWeight:600,color:C.faint,letterSpacing:".05em",textTransform:"uppercase",fontFamily:BODY}}>Group by</span>
+              <Seg value={gran} onChange={setGran} options={[{v:"daily",l:"Day"},{v:"weekly",l:"Week"},{v:"monthly",l:"Month"}]}/>
+            </div>
+            <div style={{width:1,height:22,background:C.border}}/>
+            <div style={{display:"flex",alignItems:"center",gap:7}}>
+              <span style={{fontSize:14,fontWeight:600,color:C.faint,letterSpacing:".05em",textTransform:"uppercase",fontFamily:BODY}}>Range</span>
+              <input type="date" value={from} min={DATE_MIN} max={to||bounds.max}
+                onChange={e=>{setFrom(e.target.value); setPresetState("");}}
+                style={{padding:"6px 10px",border:`1px solid ${C.border}`,borderRadius:7,fontFamily:MONO,fontSize:14,color:C.sub,outline:"none"}}/>
+              <span style={{color:C.faint,fontSize:14}}>→</span>
+              <input type="date" value={to} min={from||DATE_MIN} max={bounds.max}
+                onChange={e=>{setTo(e.target.value); setPresetState("");}}
+                style={{padding:"6px 10px",border:`1px solid ${C.border}`,borderRadius:7,fontFamily:MONO,fontSize:14,color:C.sub,outline:"none"}}/>
+            </div>
+            {selCards.size > 0 && (
+              <div style={{marginLeft:"auto",display:"flex",alignItems:"center"}}>
+                <button onClick={()=>setSelCards(new Set())} style={{
+                  fontSize:14,fontWeight:500,color:C.sub,background:"transparent",
+                  border:`1px solid ${C.border}`,borderRadius:7,padding:"6px 14px",
+                  cursor:"pointer",fontFamily:BODY,
+                }}>Clear Selection</button>
+              </div>
+            )}
           </div>
 
-          {/* ── RIGHT: GRAPH SECTION (2/3) ── */}
-          <div className="dashboard-charts">
+          <div className="dashboard-body">
 
-            {/* Controls bar */}
-            <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",flexShrink:0,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"10px 16px",boxShadow:SHADOW}}>
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <span style={{fontSize:14,fontWeight:600,color:C.faint,letterSpacing:".05em",textTransform:"uppercase",fontFamily:BODY}}>Trend</span>
-                <Seg value={trend} onChange={setTrend} options={[{v:"daily",l:"Daily"},{v:"cumulative",l:"Cumulative"}]}/>
-              </div>
-              <div style={{width:1,height:22,background:C.border}}/>
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <span style={{fontSize:14,fontWeight:600,color:C.faint,letterSpacing:".05em",textTransform:"uppercase",fontFamily:BODY}}>Group by</span>
-                <Seg value={gran} onChange={setGran} options={[{v:"daily",l:"Day"},{v:"weekly",l:"Week"},{v:"monthly",l:"Month"}]}/>
-              </div>
-              <div style={{width:1,height:22,background:C.border}}/>
-              <div style={{display:"flex",alignItems:"center",gap:7}}>
-                <span style={{fontSize:14,fontWeight:600,color:C.faint,letterSpacing:".05em",textTransform:"uppercase",fontFamily:BODY}}>Range</span>
-                <input type="date" value={from} min={DATE_MIN} max={to||bounds.max}
-                  onChange={e=>{setFrom(e.target.value); setPresetState("");}}
-                  style={{padding:"6px 10px",border:`1px solid ${C.border}`,borderRadius:7,fontFamily:MONO,fontSize:14,color:C.sub,outline:"none"}}/>
-                <span style={{color:C.faint,fontSize:14}}>→</span>
-                <input type="date" value={to} min={from||DATE_MIN} max={bounds.max}
-                  onChange={e=>{setTo(e.target.value); setPresetState("");}}
-                  style={{padding:"6px 10px",border:`1px solid ${C.border}`,borderRadius:7,fontFamily:MONO,fontSize:14,color:C.sub,outline:"none"}}/>
-              </div>
-              {selCards.size > 0 && (
-                <div style={{marginLeft:"auto",display:"flex",alignItems:"center"}}>
-                  <button onClick={()=>setSelCards(new Set())} style={{
-                    fontSize:14,fontWeight:500,color:C.sub,background:"transparent",
-                    border:`1px solid ${C.border}`,borderRadius:7,padding:"6px 14px",
-                    cursor:"pointer",fontFamily:BODY,
-                  }}>Clear Selection</button>
-                </div>
-              )}
+            {/* ── LEFT: KPI CARDS (1/3) ── */}
+            <div className="dashboard-kpis">
+
+              <KpiCard cardKey="revenue" label="Total Revenue" icon={IndianRupee} color={C.revenue}
+                value={`₹${toCr(kpi.revenue)} Cr`} badge={pct("base")}
+                todayLabel="Today" todayVal={latest?`₹${Math.round((latest.base||0)*RATE_PER_UPDATE).toLocaleString("en-IN")}`:"—"}
+                rows1={[{label:"Billable updates",value:nfIN(kpi.base)},{label:"Rate / update",value:`₹${RATE_PER_UPDATE}`}]}
+                sparkData={spark("base")}
+                selected={selCards.has("revenue")} onClick={()=>toggleCard("revenue")}
+                period={periodLabel}/>
+
+              <KpiCard cardKey="downloads" label="App Downloads" icon={Download} color={C.android}
+                value={nfIN(kpi.android+kpi.ios)} badge={pct("android")}
+                todayLabel="Today" todayVal={latest?nfIN((latest.android||0)+(latest.ios||0)):"—"}
+                rows1={[{label:"Android",value:nfIN(kpi.android)},{label:"iOS",value:nfIN(kpi.ios)}]}
+                sparkData={spark("android").map((d,i)=>({v:d.v+(spark("ios")[i]?.v||0)}))}
+                selected={selCards.has("downloads")} onClick={()=>toggleCard("downloads")}
+                period={periodLabel}/>
+
+              <KpiCard cardKey="total" label="Total Updates" icon={Activity} color={C.total}
+                value={nfIN(kpi.total)} badge={pct("total")}
+                todayLabel="Today" todayVal={latest?nfIN(latest.total):"—"}
+                rows1={[{label:"Billable",value:nfIN(kpi.base)},{label:"Email",value:nfIN(kpi.email)}]}
+                sparkData={spark("total")}
+                selected={selCards.has("total")} onClick={()=>toggleCard("total")}
+                period={periodLabel}/>
+
+              <KpiCard cardKey="mobile" label="Mob. No. Updates" icon={Smartphone} color={C.mobile}
+                value={nfIN(kpi.mobile)} badge={pct("mobile")}
+                todayLabel="Today" todayVal={latest?nfIN(latest.mobile):"—"}
+                rows1={[{label:"% of total",value:kpi.total?`${(kpi.mobile/kpi.total*100).toFixed(1)}%`:"—"}]}
+                sparkData={spark("mobile")}
+                selected={selCards.has("mobile")} onClick={()=>toggleCard("mobile")}
+                period={periodLabel}/>
+
+              <KpiCard cardKey="address" label="Address Updates" icon={MapPin} color={C.address}
+                value={nfIN(kpi.address+kpi.hof)} badge={pct("address")}
+                todayLabel="Today" todayVal={latest?nfIN((latest.address||0)+(latest.hof||0)):"—"}
+                rows1={[{label:"Regular",value:nfIN(kpi.address)},{label:"HOF",value:nfIN(kpi.hof)}]}
+                sparkData={spark("address").map((d,i)=>({v:d.v+(spark("hof")[i]?.v||0)}))}
+                selected={selCards.has("address")} onClick={()=>toggleCard("address")}
+                period={periodLabel}/>
+
+              <KpiCard cardKey="email" label="Email Updates" icon={Mail} color={C.email}
+                value={nfIN(kpi.email)} badge={pct("email")}
+                todayLabel="Today" todayVal={latest?nfIN(latest.email):"—"}
+                rows1={[{label:"% of total",value:kpi.total?`${(kpi.email/kpi.total*100).toFixed(1)}%`:"—"},{label:"Excl. from revenue",value:"Yes"}]}
+                sparkData={spark("email")}
+                selected={selCards.has("email")} onClick={()=>toggleCard("email")}
+                period={periodLabel}/>
             </div>
 
-            {/* Update trends chart */}
-            <div style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS,display:"flex",flexDirection:"column",minHeight:0,minWidth:0,overflow:"hidden",padding:"18px 20px 14px",boxShadow:SHADOW}}>
+            {/* ── RIGHT: GRAPH SECTION (2/3) ── */}
+            <div className="dashboard-charts">
+
+              {/* Update trends chart */}
+              <div style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS,display:"flex",flexDirection:"column",minHeight:0,minWidth:0,overflow:"hidden",padding:"18px 20px 14px",boxShadow:SHADOW}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexShrink:0,flexWrap:"wrap",gap:12}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <TrendingUp size={18} color={C.teal} strokeWidth={2.2}/>
@@ -753,6 +770,7 @@ export default function PehchaanDashboard() {
             )}
           </div>{/* right col */}
         </div>
+        </>
       )}
       <style>{`
         @keyframes sp { to { transform: rotate(360deg); } }
