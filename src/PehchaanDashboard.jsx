@@ -169,12 +169,12 @@ function Seg({ options, value, onChange }) {
 }
 
 // ── KPI Card ─────────────────────────────────────────────────────────────────
-function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal, rows1, sparkData, selected, onClick, period }) {
+function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal, rows1, sparkData, selected, onClick, period, preset }) {
   return (
     <div onClick={onClick} style={{
       background: selected ? C.selBg : C.surface,
       border: `1.5px solid ${selected ? C.selBdr : C.border}`,
-      borderRadius: RADIUS, padding: "10px 18px",
+      borderRadius: RADIUS, padding: "10px 16px",
       cursor: "pointer", userSelect: "none",
       boxShadow: selected ? SHADOW_SEL : SHADOW,
       transition: "box-shadow .18s, border-color .18s, background .18s",
@@ -184,8 +184,23 @@ function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal,
       {/* Top Section */}
       <div style={{display:"flex",flexDirection:"column",gap:8,flexShrink:0,minWidth:0}}>
         {/* Title + Badge Stack */}
-        <div style={{display:"flex",alignItems:"flex-start",gap:8,minWidth:0}}>
-          <div style={{width:32,height:32,borderRadius:8,background:`${color}12`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2}}>
+        <div style={{
+          display:"flex",
+          alignItems: badge != null ? "flex-start" : "center",
+          gap:8,
+          minWidth:0
+        }}>
+          <div style={{
+            width:32,
+            height:32,
+            borderRadius:8,
+            background:`${color}12`,
+            display:"flex",
+            alignItems:"center",
+            justifyContent:"center",
+            flexShrink:0,
+            marginTop: badge != null ? 2 : 0
+          }}>
             <Icon size={16} color={color} strokeWidth={2.2}/>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:2,minWidth:0,flex:1}}>
@@ -215,23 +230,29 @@ function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal,
           {todayLabel && (
             <div style={{
               display:"flex",flexDirection:"column",
-              background:"#F3F4F6",border:"1px solid #E5E7EB",
+              background:"#F0F9FF",border:"1px solid #E0F2FE",
               borderRadius:5,padding:"5px 10px",width:"100%",boxSizing:"border-box",gap:2
             }}>
               <span style={{
-                fontSize:10,fontFamily:BODY,color:C.muted,
+                fontSize:10,fontFamily:BODY,color:"#0284C7",
                 fontWeight:600,textTransform:"uppercase",letterSpacing:".04em",lineHeight:1
               }}>
-                {todayLabel}
+                {(preset === "today") ? todayLabel : "Selected Range"}
               </span>
               <div style={{
                 display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:8
               }}>
                 <span style={{fontSize:12,fontWeight:700,color:C.sub,fontFamily:BODY,lineHeight:1}}>
-                  {todayVal}
+                  {(preset === "today") ? todayVal : (
+                    preset === "all" ? "All time" :
+                    preset === "7" ? "Last Week" :
+                    preset === "30" ? "1 Month" :
+                    preset === "90" ? "3 Months" :
+                    preset === "cumulative" ? "Cumulative" : "Custom"
+                  )}
                 </span>
-                {period && (
-                  <span style={{fontSize:11,color:C.muted,fontFamily:BODY,fontWeight:400,lineHeight:1}}>
+                {!(preset === "today") && period && (
+                  <span style={{fontSize:11,color:"#64748B",fontFamily:BODY,fontWeight:400,lineHeight:1}}>
                     {period}
                   </span>
                 )}
@@ -453,6 +474,14 @@ export default function PehchaanDashboard() {
 
   const toggleCard = ck => setSelCards(prev => { const n=new Set(prev); n.has(ck)?n.delete(ck):n.add(ck); return n; });
 
+  const isFilterChanged = preset !== "all" || gran !== "daily" || selCards.size > 0 || from !== DATE_MIN || to !== bounds?.max;
+
+  const handleResetFilters = () => {
+    setPreset("all");
+    setGran("daily");
+    setSelCards(new Set());
+  };
+
   const fmtRefresh = d => d?.toLocaleString("en-IN",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
 
   const lineDef = [
@@ -646,7 +675,7 @@ export default function PehchaanDashboard() {
       {rows && (
         <>
           {/* Controls bar */}
-          <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",flexShrink:0,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"10px 16px",boxShadow:SHADOW,marginBottom:12}}>
+          <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",flexShrink:0,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"10px 16px",boxShadow:SHADOW,marginBottom:16}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <span style={{fontSize:14,fontWeight:600,color:C.faint,letterSpacing:".05em",textTransform:"uppercase",fontFamily:BODY}}>Trends</span>
               <Seg value={preset} onChange={setPreset} options={[
@@ -674,13 +703,13 @@ export default function PehchaanDashboard() {
                 onChange={e=>{setTo(e.target.value); setPresetState("");}}
                 style={{padding:"6px 10px",border:`1px solid ${C.border}`,borderRadius:7,fontFamily:MONO,fontSize:14,color:C.sub,outline:"none"}}/>
             </div>
-            {selCards.size > 0 && (
+            {isFilterChanged && (
               <div style={{marginLeft:"auto",display:"flex",alignItems:"center"}}>
-                <button onClick={()=>setSelCards(new Set())} style={{
-                  fontSize:14,fontWeight:500,color:C.sub,background:"transparent",
-                  border:`1px solid ${C.border}`,borderRadius:7,padding:"6px 14px",
-                  cursor:"pointer",fontFamily:BODY,
-                }}>Clear Selection</button>
+                <button onClick={handleResetFilters} style={{
+                  fontSize:13,fontWeight:600,color:"#EF4444",background:"#FEF2F2",
+                  border:"1px solid #FEE2E2",borderRadius:8,padding:"6px 14px",
+                  cursor:"pointer",fontFamily:BODY,transition:"all .15s"
+                }}>Reset Filters</button>
               </div>
             )}
           </div>
@@ -696,7 +725,7 @@ export default function PehchaanDashboard() {
                 rows1={[{label:"Billable updates",value:nfIN(kpi.base)},{label:"Rate / update",value:`₹${RATE_PER_UPDATE}`}]}
                 sparkData={spark("base")}
                 selected={selCards.has("revenue")} onClick={()=>toggleCard("revenue")}
-                period={periodLabel}/>
+                period={periodLabel} preset={preset}/>
 
               <KpiCard cardKey="downloads" label="App Downloads" icon={Download} color={C.android}
                 value={nfIN(kpi.android+kpi.ios)} badge={pct("android")}
@@ -704,7 +733,7 @@ export default function PehchaanDashboard() {
                 rows1={[{label:"Android",value:nfIN(kpi.android)},{label:"iOS",value:nfIN(kpi.ios)}]}
                 sparkData={spark("android").map((d,i)=>({v:d.v+(spark("ios")[i]?.v||0)}))}
                 selected={selCards.has("downloads")} onClick={()=>toggleCard("downloads")}
-                period={periodLabel}/>
+                period={periodLabel} preset={preset}/>
 
               <KpiCard cardKey="total" label="Total Updates" icon={Activity} color={C.total}
                 value={nfIN(kpi.total)} badge={pct("total")}
@@ -712,7 +741,7 @@ export default function PehchaanDashboard() {
                 rows1={[{label:"Billable",value:nfIN(kpi.base)},{label:"Email",value:nfIN(kpi.email)}]}
                 sparkData={spark("total")}
                 selected={selCards.has("total")} onClick={()=>toggleCard("total")}
-                period={periodLabel}/>
+                period={periodLabel} preset={preset}/>
 
               <KpiCard cardKey="mobile" label="Mob. No. Updates" icon={Smartphone} color={C.mobile}
                 value={nfIN(kpi.mobile)} badge={pct("mobile")}
@@ -720,7 +749,7 @@ export default function PehchaanDashboard() {
                 rows1={[{label:"% of total",value:kpi.total?`${(kpi.mobile/kpi.total*100).toFixed(1)}%`:"—"}]}
                 sparkData={spark("mobile")}
                 selected={selCards.has("mobile")} onClick={()=>toggleCard("mobile")}
-                period={periodLabel}/>
+                period={periodLabel} preset={preset}/>
 
               <KpiCard cardKey="address" label="Address Updates" icon={MapPin} color={C.address}
                 value={nfIN(kpi.address+kpi.hof)} badge={pct("address")}
@@ -728,7 +757,7 @@ export default function PehchaanDashboard() {
                 rows1={[{label:"Regular",value:nfIN(kpi.address)},{label:"HOF",value:nfIN(kpi.hof)}]}
                 sparkData={spark("address").map((d,i)=>({v:d.v+(spark("hof")[i]?.v||0)}))}
                 selected={selCards.has("address")} onClick={()=>toggleCard("address")}
-                period={periodLabel}/>
+                period={periodLabel} preset={preset}/>
 
               <KpiCard cardKey="email" label="Email Updates" icon={Mail} color={C.email}
                 value={nfIN(kpi.email)} badge={pct("email")}
@@ -736,19 +765,19 @@ export default function PehchaanDashboard() {
                 rows1={[{label:"% of total",value:kpi.total?`${(kpi.email/kpi.total*100).toFixed(1)}%`:"—"},{label:"Excl. from revenue",value:"Yes"}]}
                 sparkData={spark("email")}
                 selected={selCards.has("email")} onClick={()=>toggleCard("email")}
-                period={periodLabel}/>
+                period={periodLabel} preset={preset}/>
             </div>
 
             {/* ── RIGHT: GRAPH SECTION (2/3) ── */}
             <div className="dashboard-charts">
 
               {/* Update trends chart */}
-              <div style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS,display:"flex",flexDirection:"column",minHeight:0,minWidth:0,overflow:"hidden",padding:"18px 20px 14px",boxShadow:SHADOW}}>
+              <div style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS,display:"flex",flexDirection:"column",minHeight:0,minWidth:0,overflow:"hidden",padding:"16px",boxShadow:SHADOW}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexShrink:0,flexWrap:"wrap",gap:12}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <TrendingUp size={18} color={C.teal} strokeWidth={2.2}/>
                   <span style={{fontSize:20,fontWeight:700,color:C.ink,fontFamily:HEAD}}>{activeTitle}</span>
-                  <span style={{fontSize:14,color:C.faint,fontFamily:MONO,fontWeight:500}}>{trend} · {gran}</span>
+                  <span style={{fontSize:14,color:C.faint,fontFamily:MONO,fontWeight:500}}>{gran}</span>
                 </div>
                 
                 {/* Legend Wrapper */}
@@ -783,11 +812,27 @@ export default function PehchaanDashboard() {
 
             {/* Downloads chart */}
             {showDl && (
-              <div style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS,display:"flex",flexDirection:"column",minHeight:0,minWidth:0,overflow:"hidden",padding:"18px 20px 14px",boxShadow:SHADOW}}>
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14,flexShrink:0}}>
-                  <Download size={18} color={C.android} strokeWidth={2.2}/>
-                  <span style={{fontSize:20,fontWeight:700,color:C.ink,fontFamily:HEAD}}>App Downloads</span>
-                  <span style={{fontSize:14,color:C.faint,fontFamily:MONO,fontWeight:500}}>{trend} · {gran}</span>
+              <div style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS,display:"flex",flexDirection:"column",minHeight:0,minWidth:0,overflow:"hidden",padding:"16px",boxShadow:SHADOW}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexShrink:0,flexWrap:"wrap",gap:12}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <Download size={18} color={C.android} strokeWidth={2.2}/>
+                    <span style={{fontSize:20,fontWeight:700,color:C.ink,fontFamily:HEAD}}>App Downloads</span>
+                    <span style={{fontSize:14,color:C.faint,fontFamily:MONO,fontWeight:500}}>{gran}</span>
+                  </div>
+                  
+                  {/* Legend Wrapper */}
+                  <div style={{display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+                    <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6,fontSize:14,color:C.sub,fontWeight:500,fontFamily:BODY}}>
+                        <span style={{width:10,height:10,borderRadius:"50%",background:C.android,flexShrink:0}}/>
+                        Android
+                      </div>
+                      <div style={{display:"flex",alignItems:"center",gap:6,fontSize:14,color:C.sub,fontWeight:500,fontFamily:BODY}}>
+                        <span style={{width:10,height:10,borderRadius:"50%",background:C.ios,flexShrink:0}}/>
+                        iOS
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div style={{flex:1,minHeight:0}}>
                   {hasDl ? (
@@ -797,7 +842,6 @@ export default function PehchaanDashboard() {
                         <XAxis dataKey="label" tick={{fontSize:14,fill:C.faint,fontFamily:MONO}} minTickGap={32} axisLine={{stroke:C.border}} tickLine={false}/>
                         <YAxis tick={{fontSize:14,fill:C.faint,fontFamily:MONO}} axisLine={false} tickLine={false} width={48} tickFormatter={fmtK}/>
                         <Tooltip content={<ChartTooltip/>}/>
-                        <Legend wrapperStyle={{fontSize:14,fontFamily:BODY,paddingTop:4,color:C.sub}}/>
                         <Line type="monotone" dataKey="android" name="Android" stroke={C.android} strokeWidth={2.2}
                           dot={false} activeDot={{r:6,strokeWidth:0}} animationDuration={400} animationEasing="ease-out"/>
                         <Line type="monotone" dataKey="ios" name="iOS" stroke={C.ios} strokeWidth={2.2}
