@@ -139,9 +139,9 @@ function parseSheetCSV(csv) {
 
 // ── Sparkline ─────────────────────────────────────────────────────────────────
 function Spark({ data, color }) {
-  if (!data || data.length < 2) return <div style={{width:72,height:36}}/>;
+  if (!data || data.length < 2) return <div style={{width:72,height:28}}/>;
   return (
-    <ResponsiveContainer width={72} height={36}>
+    <ResponsiveContainer width={72} height={28}>
       <LineChart data={data} margin={{top:2,right:1,bottom:2,left:1}}>
         <Line type="monotone" dataKey="v" stroke={color} strokeWidth={2}
           dot={false} isAnimationActive={false}/>
@@ -205,15 +205,9 @@ function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal,
         <div>
           <div style={{fontFamily:HEAD,fontSize:28,fontWeight:700,color:C.ink,lineHeight:1,fontVariantNumeric:"tabular-nums",letterSpacing:"-.03em"}}>{value}</div>
           {todayLabel && (
-            <div style={{fontSize:14,color:C.muted,marginTop:6,fontFamily:BODY,fontWeight:400,display:"flex",flexDirection:"column",gap:2}}>
-              <div>
-                {todayLabel}&nbsp;<span style={{color:C.sub,fontWeight:600}}>{todayVal}</span>
-              </div>
-              {period && (
-                <div style={{fontSize:12,color:C.muted,fontWeight:500,letterSpacing:".01em"}}>
-                  Period: {period}
-                </div>
-              )}
+            <div style={{fontSize:13,color:C.muted,marginTop:4,fontFamily:BODY,fontWeight:400}}>
+              {todayLabel}&nbsp;<span style={{color:C.sub,fontWeight:600}}>{todayVal}</span>
+              {period && <span style={{fontSize:12,color:C.muted,fontWeight:400,opacity:0.85}}>&nbsp;({period})</span>}
             </div>
           )}
         </div>
