@@ -795,8 +795,7 @@ export default function PehchaanDashboard() {
     [...selCards].map(k=>({revenue:"Revenue",downloads:"Downloads",total:"Total Updates",mobile:"Mob. No. Updates",address:"Address",email:"Email"}[k])).join(" · ");
 
   // ── gate ──────────────────────────────────────────────────────────────────
-  // ── gate ──────────────────────────────────────────────────────────────────
-  if (ACCESS_CODE_HASHES && !gate) return (
+  if (!gate) return (
     <div className="login-wrap">
       {/* LEFT SPLIT (2/3rds width) */}
       <div className="login-visual" style={{ background: `url(${authBg}) center/cover no-repeat` }}>
@@ -941,17 +940,15 @@ export default function PehchaanDashboard() {
           </button>
 
           {/* Exit / Logout Option */}
-          {ACCESS_CODE_HASHES && (
-            <button onClick={logout} style={{
-              display:"inline-flex",alignItems:"center",gap:5,fontSize:13,fontWeight:600,
-              color: "#EF4444", background: C.surface,
-              border: `1.5px solid #FEE2E2`, borderRadius:8, padding:"6px 14px",
-              cursor:"pointer", transition:"all .15s", fontFamily:BODY,
-            }}>
-              <LogOut size={13} strokeWidth={2.2}/>
-              Exit
-            </button>
-          )}
+          <button onClick={logout} style={{
+            display:"inline-flex",alignItems:"center",gap:5,fontSize:13,fontWeight:600,
+            color: "#EF4444", background: C.surface,
+            border: `1.5px solid #FEE2E2`, borderRadius:8, padding:"6px 14px",
+            cursor:"pointer", transition:"all .15s", fontFamily:BODY,
+          }}>
+            <LogOut size={13} strokeWidth={2.2}/>
+            Exit
+          </button>
         </div>
       </div>
 
