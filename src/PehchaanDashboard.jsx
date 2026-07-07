@@ -174,11 +174,11 @@ function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal,
     <div onClick={onClick} style={{
       background: selected ? C.selBg : C.surface,
       border: `1.5px solid ${selected ? C.selBdr : C.border}`,
-      borderRadius: RADIUS, padding: "12px 18px",
+      borderRadius: RADIUS, padding: "10px 18px",
       cursor: "pointer", userSelect: "none",
       boxShadow: selected ? SHADOW_SEL : SHADOW,
       transition: "box-shadow .18s, border-color .18s, background .18s",
-      display: "flex", flexDirection: "column", gap: 6,
+      display: "flex", flexDirection: "column", gap: 4,
       height: "100%", boxSizing: "border-box"
     }}>
       {/* Top Section */}
@@ -205,7 +205,7 @@ function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal,
         </div>
 
         {/* Main Value + Sparkline + Today Chip */}
-        <div style={{display:"flex",flexDirection:"column",gap:6,marginTop:2}}>
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:10}}>
           <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12}}>
             <div style={{fontFamily:HEAD,fontSize:26,fontWeight:700,color:C.ink,lineHeight:1,fontVariantNumeric:"tabular-nums",letterSpacing:"-.03em",whiteSpace:"nowrap"}}>{value}</div>
             <div style={{flexShrink:0,paddingTop:2}}>
@@ -213,16 +213,29 @@ function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal,
             </div>
           </div>
           {todayLabel && (
-            <div style={{display:"flex"}}>
+            <div style={{
+              display:"flex",flexDirection:"column",
+              background:"#F3F4F6",border:"1px solid #E5E7EB",
+              borderRadius:5,padding:"5px 10px",width:"100%",boxSizing:"border-box",gap:2
+            }}>
               <span style={{
-                display:"inline-flex",alignItems:"center",
-                background:"#F3F4F6",border:"1px solid #E5E7EB",
-                borderRadius:5,padding:"1px 6px",fontSize:11,
-                fontFamily:BODY,color:C.sub,fontWeight:500,whiteSpace:"nowrap"
+                fontSize:10,fontFamily:BODY,color:C.muted,
+                fontWeight:600,textTransform:"uppercase",letterSpacing:".04em",lineHeight:1
               }}>
-                {todayLabel}:&nbsp;<span style={{color:C.ink,fontWeight:600}}>{todayVal}</span>
-                {period && <span style={{color:C.muted,fontWeight:400}}>&nbsp;({period})</span>}
+                {todayLabel}
               </span>
+              <div style={{
+                display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:8
+              }}>
+                <span style={{fontSize:12,fontWeight:700,color:C.sub,fontFamily:BODY,lineHeight:1}}>
+                  {todayVal}
+                </span>
+                {period && (
+                  <span style={{fontSize:11,color:C.muted,fontFamily:BODY,fontWeight:400,lineHeight:1}}>
+                    {period}
+                  </span>
+                )}
+              </div>
             </div>
           )}
         </div>
