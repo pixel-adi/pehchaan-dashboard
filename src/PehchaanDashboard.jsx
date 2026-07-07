@@ -174,11 +174,11 @@ function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal,
     <div onClick={onClick} style={{
       background: selected ? C.selBg : C.surface,
       border: `1.5px solid ${selected ? C.selBdr : C.border}`,
-      borderRadius: RADIUS, padding: "16px 18px",
+      borderRadius: RADIUS, padding: "14px 16px",
       cursor: "pointer", userSelect: "none",
       boxShadow: selected ? SHADOW_SEL : SHADOW,
       transition: "box-shadow .18s, border-color .18s, background .18s",
-      display: "flex", flexDirection: "column", gap: 12,
+      display: "flex", flexDirection: "column", gap: 10,
       height: "100%", boxSizing: "border-box"
     }}>
       {/* Title + Badge (Toned down headings) */}
@@ -619,16 +619,16 @@ export default function PehchaanDashboard() {
       {rows && (
         <>
           {/* Controls bar */}
-          <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",flexShrink:0,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"10px 16px",boxShadow:SHADOW,marginBottom:16}}>
+          <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",flexShrink:0,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"10px 16px",boxShadow:SHADOW,marginBottom:12}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <span style={{fontSize:14,fontWeight:600,color:C.faint,letterSpacing:".05em",textTransform:"uppercase",fontFamily:BODY}}>Trends</span>
               <Seg value={preset} onChange={setPreset} options={[
                 {v:"all",l:"All"},
                 {v:"today",l:"Today"},
-                {v:"7",l:"Last Week"},
-                {v:"30",l:"1 Month"},
-                {v:"90",l:"3 Months"},
-                {v:"cumulative",l:"Cumulative"}
+                {v:"7",l:"1W"},
+                {v:"30",l:"1M"},
+                {v:"90",l:"3M"},
+                {v:"cumulative",l:"Cum."}
               ]}/>
             </div>
             <div style={{width:1,height:22,background:C.border}}/>
