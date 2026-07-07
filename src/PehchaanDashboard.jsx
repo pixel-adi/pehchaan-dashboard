@@ -548,46 +548,49 @@ export default function PehchaanDashboard() {
     <div className="dashboard-wrap">
 
       {/* ── HEADER ── */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexShrink:0}}>
-        <div style={{display:"flex",flexDirection:"column",gap:4}}>
-          <div style={{display:"flex",alignItems:"baseline",gap:12,flexWrap:"wrap"}}>
-            <span style={{fontSize:26,fontWeight:800,color:C.ink,letterSpacing:"-.03em",fontFamily:HEAD}}>Pehchaan — Updates &amp; Revenue</span>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <img src="https://upload.wikimedia.org/wikipedia/commons/e/ee/Aadhaar.svg" 
+               alt="Aadhaar logo" 
+               style={{height:28, width:"auto", objectFit:"contain", flexShrink:0}}/>
+          <div style={{display:"flex",alignItems:"baseline",gap:8}}>
+            <span style={{fontSize:18,fontWeight:800,color:C.ink,letterSpacing:"-.02em",fontFamily:HEAD}}>Pehchaan Updates &amp; Revenue</span>
+            <span style={{fontSize:12,fontWeight:600,color:C.faint,letterSpacing:".05em",textTransform:"uppercase",fontFamily:BODY}}>UIDAI · Aadhaar App</span>
           </div>
-          <div style={{fontSize:14,fontWeight:600,color:C.faint,letterSpacing:".05em",textTransform:"uppercase",fontFamily:BODY}}>UIDAI · Aadhaar App</div>
         </div>
-        <div style={{display:"flex",gap:10,alignItems:"center"}}>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
           {lastUpd && !busy && (
-            <div style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:14,color:"#1B8C5A",border:"1px solid #BBF7D0",borderRadius:8,padding:"5px 12px",background:"#F0FDF4",fontWeight:600,fontFamily:BODY}}>
-              <CheckCircle2 size={14} strokeWidth={2.5}/> Latest
+            <div style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:13,color:"#1B8C5A",border:"1px solid #BBF7D0",borderRadius:6,padding:"4px 8px",background:"#F0FDF4",fontWeight:600,fontFamily:BODY}}>
+              <CheckCircle2 size={13} strokeWidth={2.5}/> Latest
             </div>
           )}
 
           {/* Refreshed info paired directly with Refresh button */}
           {lastUpd && (
-            <div style={{fontSize:14,color:C.sub,fontFamily:BODY,marginRight:4}}>
+            <div style={{fontSize:13,color:C.sub,fontFamily:BODY,marginRight:4}}>
               Refreshed: <span style={{color:C.ink,fontFamily:MONO,fontWeight:600}}>{fmtRefresh(lastUpd)}</span>
             </div>
           )}
 
           <button onClick={() => fetchSheet(true)} disabled={busy} style={{
-            display:"inline-flex",alignItems:"center",gap:7,fontSize:14,fontWeight:600,
+            display:"inline-flex",alignItems:"center",gap:6,fontSize:13,fontWeight:600,
             color: busy ? C.faint : C.ink, background:C.surface,
-            border:`1.5px solid ${C.border}`,borderRadius:10,padding:"8px 18px",
+            border:`1.5px solid ${C.border}`,borderRadius:8,padding:"6px 14px",
             cursor:busy?"default":"pointer",transition:"all .15s",fontFamily:BODY,
           }}>
-            <RefreshCw size={14} className={busy?"spin":""} strokeWidth={2.2}/>
+            <RefreshCw size={13} className={busy?"spin":""} strokeWidth={2.2}/>
             {busy?"Fetching…":"Refresh"}
           </button>
 
           {/* Exit / Logout Option */}
           {ACCESS_CODE_HASHES && (
             <button onClick={logout} style={{
-              display:"inline-flex",alignItems:"center",gap:6,fontSize:14,fontWeight:600,
+              display:"inline-flex",alignItems:"center",gap:5,fontSize:13,fontWeight:600,
               color: "#EF4444", background: C.surface,
-              border: `1.5px solid #FEE2E2`, borderRadius:10, padding:"8px 18px",
+              border: `1.5px solid #FEE2E2`, borderRadius:8, padding:"6px 14px",
               cursor:"pointer", transition:"all .15s", fontFamily:BODY,
             }}>
-              <LogOut size={14} strokeWidth={2.2}/>
+              <LogOut size={13} strokeWidth={2.2}/>
               Exit
             </button>
           )}
