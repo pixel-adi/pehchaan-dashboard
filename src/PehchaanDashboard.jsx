@@ -139,9 +139,9 @@ function parseSheetCSV(csv) {
 
 // ── Sparkline ─────────────────────────────────────────────────────────────────
 function Spark({ data, color }) {
-  if (!data || data.length < 2) return <div style={{width:72,height:28}}/>;
+  if (!data || data.length < 2) return <div style={{width:54,height:20}}/>;
   return (
-    <ResponsiveContainer width={72} height={28}>
+    <ResponsiveContainer width={54} height={20}>
       <LineChart data={data} margin={{top:2,right:1,bottom:2,left:1}}>
         <Line type="monotone" dataKey="v" stroke={color} strokeWidth={2}
           dot={false} isAnimationActive={false}/>
@@ -182,12 +182,12 @@ function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal,
       height: "100%", boxSizing: "border-box"
     }}>
       {/* Title + Badge (Toned down headings) */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,minWidth:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}>
           <div style={{width:28,height:28,borderRadius:8,background:`${color}12`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
             <Icon size={14} color={color} strokeWidth={2.2}/>
           </div>
-          <span style={{fontSize:14,fontWeight:500,color:C.sub,fontFamily:BODY,letterSpacing:".01em"}}>{label}</span>
+          <span style={{fontSize:14,fontWeight:500,color:C.sub,fontFamily:BODY,letterSpacing:".01em",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</span>
         </div>
         {badge != null && (
           <span style={{
@@ -195,32 +195,34 @@ function KpiCard({ label, icon: Icon, color, value, badge, todayLabel, todayVal,
             color: badge >= 0 ? "#2B8C5B" : "#C2410C",
             background: badge >= 0 ? "#F0FDF4" : "#FFF7ED",
             border: `1px solid ${badge >= 0 ? "#D1FAE5" : "#FFEDD5"}`,
-            borderRadius:6, padding:"2px 6px",
+            borderRadius:6, padding:"2px 6px", flexShrink:0, whiteSpace:"nowrap"
           }}>{badge >= 0 ? "▲" : "▼"} {Math.abs(badge).toFixed(1)}%</span>
         )}
       </div>
 
       {/* Main Value + Sparkline */}
-      <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",gap:8,flex:1}}>
-        <div>
-          <div style={{fontFamily:HEAD,fontSize:28,fontWeight:700,color:C.ink,lineHeight:1,fontVariantNumeric:"tabular-nums",letterSpacing:"-.03em"}}>{value}</div>
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,paddingTop:4}}>
+        <div style={{minWidth:0}}>
+          <div style={{fontFamily:HEAD,fontSize:28,fontWeight:700,color:C.ink,lineHeight:1,fontVariantNumeric:"tabular-nums",letterSpacing:"-.03em",whiteSpace:"nowrap"}}>{value}</div>
           {todayLabel && (
-            <div style={{fontSize:13,color:C.muted,marginTop:4,fontFamily:BODY,fontWeight:400}}>
+            <div style={{fontSize:13,color:C.muted,marginTop:4,fontFamily:BODY,fontWeight:400,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
               {todayLabel}&nbsp;<span style={{color:C.sub,fontWeight:600}}>{todayVal}</span>
               {period && <span style={{fontSize:12,color:C.muted,fontWeight:400,opacity:0.85}}>&nbsp;({period})</span>}
             </div>
           )}
         </div>
-        <Spark data={sparkData} color={color}/>
+        <div style={{flexShrink:0,paddingTop:4}}>
+          <Spark data={sparkData} color={color}/>
+        </div>
       </div>
 
       {/* Breakdown Rows */}
       {rows1 && rows1.length > 0 && (
         <div style={{borderTop:`1px solid ${C.border}`,paddingTop:10,display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
           {rows1.map((r,i) => (
-            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontSize:14,color:C.muted,fontFamily:BODY,fontWeight:400}}>{r.label}</span>
-              <span style={{fontSize:14,fontWeight:600,color:C.sub,fontFamily:BODY}}>{r.value}</span>
+            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+              <span style={{fontSize:14,color:C.muted,fontFamily:BODY,fontWeight:400,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.label}</span>
+              <span style={{fontSize:14,fontWeight:600,color:C.sub,fontFamily:BODY,whiteSpace:"nowrap",flexShrink:0}}>{r.value}</span>
             </div>
           ))}
         </div>
