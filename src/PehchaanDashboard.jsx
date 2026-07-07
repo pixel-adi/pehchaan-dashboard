@@ -16,7 +16,7 @@ import mandalaImg from "./mandala.png";
   Sheet: https://docs.google.com/spreadsheets/d/1pwUb9tNTzqGO2utAzF-oLRNiCsENK596Mj-ff8etGzA
 */
 const SHEET_ID  = "1pwUb9tNTzqGO2utAzF-oLRNiCsENK596Mj-ff8etGzA";
-const SHEET_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
+const SHEET_CSV_DEV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
 const DATE_MIN  = "2025-11-25";
 const ACCESS_CODE_HASHES = [
   "617802c3453aac841fbed3bc0269a48f3d44da26942e790a71e0c44a1f60a196", // "Pehchaan@2026"
@@ -611,9 +611,22 @@ export default function PehchaanDashboard() {
   const fetchSheet = useCallback(async (bust=false) => {
     setBusy(true); setError("");
     try {
-      const url = bust ? `${SHEET_CSV}&_=${Date.now()}` : SHEET_CSV;
-      const res = await fetch(url, { cache: bust?"reload":"default" });
-      if (!res.ok) throw new Error(`HTTP ${res.status} — ensure sheet is shared publicly`);
+      let url = "/api/data";
+      let options = {
+        headers: { "x-passcode": pw },
+        cache: bust ? "reload" : "default"
+      };
+
+      if (import.meta.env.DEV) {
+        url = bust ? `${SHEET_CSV_DEV}&_=${Date.now()}` : SHEET_CSV_DEV;
+        options = { cache: bust ? "reload" : "default" };
+      } else if (bust) {
+        url = `/api/data?bust=true`;
+      }
+
+      const res = await fetch(url, options);
+      if (res.status === 401) throw new Error("Incorrect or expired passcode");
+      if (!res.ok) throw new Error(`HTTP ${res.status} — failed to load data`);
       const parsed = parseSheetCSV(await res.text());
       setRows(parsed); setLastUpd(new Date());
       const max = parsed[parsed.length-1].date;
@@ -622,7 +635,7 @@ export default function PehchaanDashboard() {
       setTo(t => t || max);
     } catch(e) { setError(e.message||"Could not fetch sheet"); }
     finally { setBusy(false); }
-  }, []);
+  }, [pw]);
   useEffect(() => { if (gate) fetchSheet(false); }, [gate, fetchSheet]);
 
   const bounds = useMemo(() => rows ? { min:DATE_MIN, max:rows[rows.length-1].date } : null, [rows]);
