@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend,
@@ -6,10 +6,12 @@ import {
 import {
   RefreshCw, Lock, LogOut, TrendingUp, AlertCircle, Smartphone,
   CheckCircle2, IndianRupee, Activity, Mail, MapPin, Download,
-  Eye, EyeOff,
+  Eye, EyeOff, Camera,
 } from "lucide-react";
+import html2canvas from "html2canvas";
 import authBg from "./pehchaan_auth_bg.jpg";
 import mandalaImg from "./mandala.png";
+import aadhaarLogo from "./Aadhaar.svg";
 
 /*
   PEHCHAAN — Updates & Revenue Dashboard
@@ -589,6 +591,130 @@ export default function PehchaanDashboard() {
   const [pwErr,    setPwErr]    = useState(false);
   const [showPw,   setShowPw]   = useState(false);
 
+  // Refs for screenshot target components
+  const fullAreaRef = useRef(null);
+  const cardAreaRef = useRef(null);
+  const graphAreaRef = useRef(null);
+  const exportRef = useRef(null);
+
+  // States for screenshot selection & export
+  const [screenshotMode, setScreenshotMode] = useState(false);
+  const [rects, setRects] = useState({ full: null, cards: null, charts: null });
+  const [exportData, setExportData] = useState(null); // { dataUrl, areaName }
+
+  const measureRects = useCallback(() => {
+    if (!screenshotMode) return;
+    const fullEl = fullAreaRef.current;
+    const cardsEl = cardAreaRef.current;
+    const chartsEl = graphAreaRef.current;
+    if (fullEl && cardsEl && chartsEl) {
+      setRects({
+        full: fullEl.getBoundingClientRect(),
+        cards: cardsEl.getBoundingClientRect(),
+        charts: chartsEl.getBoundingClientRect(),
+      });
+    }
+  }, [screenshotMode]);
+
+  // Recalculate on screen resize or scroll when active
+  useEffect(() => {
+    if (screenshotMode) {
+      measureRects();
+      const timer = setTimeout(measureRects, 50);
+
+      window.addEventListener("resize", measureRects);
+      window.addEventListener("scroll", measureRects, true);
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener("resize", measureRects);
+        window.removeEventListener("scroll", measureRects, true);
+      };
+    }
+  }, [screenshotMode, measureRects]);
+
+  const captureArea = async (areaKey, areaName) => {
+    let targetRef;
+    if (areaKey === "full") targetRef = fullAreaRef;
+    else if (areaKey === "cards") targetRef = cardAreaRef;
+    else if (areaKey === "charts") targetRef = graphAreaRef;
+
+    if (!targetRef?.current) return;
+
+    // Temporarily exit screenshot selector mode so overlays are not captured
+    setScreenshotMode(false);
+
+    // Wait a brief tick for the UI to update and overlay to disappear
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    try {
+      const canvas = await html2canvas(targetRef.current, {
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: "#FFFFFF",
+        scale: 1.5,
+        logging: false
+      });
+
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
+
+      setExportData({
+        dataUrl,
+        areaName
+      });
+    } catch (err) {
+      console.error("Screenshot capture failed:", err);
+      setError("Failed to capture screenshot: " + err.message);
+    }
+  };
+
+  useEffect(() => {
+    if (!exportData) return;
+
+    const executeExport = async () => {
+      // Small delay to ensure the DOM has rendered and the <img> has loaded
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      if (!exportRef.current) {
+        setExportData(null);
+        return;
+      }
+
+      try {
+        const canvas = await html2canvas(exportRef.current, {
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: "#F4F6F9",
+          scale: 1.5,
+          logging: false
+        });
+
+        const finalDataUrl = canvas.toDataURL("image/jpeg", 0.95);
+
+        // Trigger download
+        const link = document.createElement("a");
+        const dateStr = new Date().toISOString().split("T")[0];
+        link.download = `pehchaan_dashboard_${exportData.areaName.toLowerCase().replace(/\s+/g, "_")}_${dateStr}.jpg`;
+        link.href = finalDataUrl;
+        link.click();
+      } catch (err) {
+        console.error("Export layout capture failed:", err);
+        setError("Failed to generate styled export: " + err.message);
+      } finally {
+        setExportData(null);
+      }
+    };
+
+    executeExport();
+  }, [exportData]);
+
+  const currentDateStr = useMemo(() => {
+    return new Date().toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric"
+    });
+  }, []);
+
   const tryUnlock = async () => {
     setBusy(true); setPwErr(false); setError("");
     try {
@@ -840,7 +966,7 @@ export default function PehchaanDashboard() {
           <div>
             {/* Aadhaar Logo just above Welcome Back! */}
             <div style={{marginBottom:16}}>
-              <img src="https://upload.wikimedia.org/wikipedia/commons/e/ee/Aadhaar.svg"
+              <img src={aadhaarLogo}
                 alt="Aadhaar logo" style={{width:160, height:160, objectFit:"contain", marginLeft:-24}}/>
             </div>
             <h2 style={{fontSize:32, fontWeight:700, color:C.ink, margin:0, fontFamily:HEAD, letterSpacing:"-.03em"}}>
@@ -915,12 +1041,12 @@ export default function PehchaanDashboard() {
 
   // ── dashboard ─────────────────────────────────────────────────────────────
   return (
-    <div className="dashboard-wrap">
+    <div className="dashboard-wrap" ref={fullAreaRef}>
 
       {/* ── HEADER ── */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <img src="https://upload.wikimedia.org/wikipedia/commons/e/ee/Aadhaar.svg" 
+          <img src={aadhaarLogo} 
                alt="Aadhaar logo" 
                style={{height:28, width:"auto", objectFit:"contain", flexShrink:0}}/>
           <div style={{display:"flex",alignItems:"baseline",gap:8}}>
@@ -951,6 +1077,19 @@ export default function PehchaanDashboard() {
             <RefreshCw size={13} className={busy?"spin":""} strokeWidth={2.2}/>
             {busy?"Fetching…":"Refresh"}
           </button>
+
+          {/* Screenshot Option */}
+          {rows && (
+            <button onClick={() => { setScreenshotMode(true); }} disabled={busy} style={{
+              display:"inline-flex",alignItems:"center",gap:6,fontSize:13,fontWeight:600,
+              color: C.ink, background: C.surface,
+              border: `1.5px solid ${C.border}`, borderRadius:8, padding:"6px 14px",
+              cursor:"pointer", transition:"all .15s", fontFamily:BODY,
+            }}>
+              <Camera size={13} strokeWidth={2.2}/>
+              Screenshot
+            </button>
+          )}
 
           {/* Exit / Logout Option */}
           <button onClick={logout} style={{
@@ -1033,7 +1172,7 @@ export default function PehchaanDashboard() {
           <div className="dashboard-body">
 
             {/* ── LEFT: KPI CARDS (1/3) ── */}
-            <div className="dashboard-kpis">
+            <div className="dashboard-kpis" ref={cardAreaRef}>
               {/* Section 1: Financial & Adoption (Revenue & Downloads) */}
               <div className="dashboard-kpi-sec1">
                 <KpiCard cardKey="revenue" label="Total Revenue" icon={IndianRupee} color={C.revenue}
@@ -1069,7 +1208,7 @@ export default function PehchaanDashboard() {
             </div>
 
             {/* ── RIGHT: GRAPH SECTION (2/3) ── */}
-            <div className="dashboard-charts">
+            <div className="dashboard-charts" ref={graphAreaRef}>
 
               {/* Update trends chart */}
               {showTrends && (
@@ -1160,6 +1299,268 @@ export default function PehchaanDashboard() {
         </div>
         </>
       )}
+
+      {/* Screenshot Mode Selector Overlay */}
+      {screenshotMode && rects.full && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(17, 24, 39, 0.4)",
+          backdropFilter: "blur(2px)",
+          zIndex: 99999,
+          pointerEvents: "auto",
+          overflow: "hidden",
+          fontFamily: BODY
+        }}>
+          {/* Top Header Selector Controls */}
+          <div style={{
+            position: "absolute",
+            top: "20px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#FFFFFF",
+            border: `1px solid ${C.border}`,
+            borderRadius: "12px",
+            padding: "10px 20px",
+            boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+            display: "flex",
+            alignItems: "center",
+            gap: "16px",
+            pointerEvents: "auto"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Camera size={18} color={C.teal} strokeWidth={2.2}/>
+              <span style={{ fontSize: "14px", fontWeight: 700, color: C.ink }}>Screenshot Mode</span>
+            </div>
+            <div style={{ width: "1px", height: "18px", background: C.border }}/>
+            <span style={{ fontSize: "13px", color: C.sub, fontWeight: 500 }}>Select area or quick select:</span>
+            <div style={{ display: "flex", gap: "6px" }}>
+              <button 
+                onClick={() => captureArea("full", "Full Dashboard")}
+                style={{
+                  border: "none", background: "#EEF1F6", cursor: "pointer", borderRadius: "6px",
+                  padding: "6px 12px", fontSize: "13px", fontWeight: 600, color: C.ink, transition: "all 0.15s"
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = "#E4E8F0"; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = "#EEF1F6"; }}
+              >
+                Entire Dashboard
+              </button>
+              <button 
+                onClick={() => captureArea("cards", "Metrics Cards")}
+                style={{
+                  border: "none", background: "#EEF1F6", cursor: "pointer", borderRadius: "6px",
+                  padding: "6px 12px", fontSize: "13px", fontWeight: 600, color: C.ink, transition: "all 0.15s"
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = "#E4E8F0"; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = "#EEF1F6"; }}
+              >
+                Metrics Cards
+              </button>
+              <button 
+                onClick={() => captureArea("charts", "Charts Section")}
+                style={{
+                  border: "none", background: "#EEF1F6", cursor: "pointer", borderRadius: "6px",
+                  padding: "6px 12px", fontSize: "13px", fontWeight: 600, color: C.ink, transition: "all 0.15s"
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = "#E4E8F0"; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = "#EEF1F6"; }}
+              >
+                Charts &amp; Graphs
+              </button>
+            </div>
+            <div style={{ width: "1px", height: "18px", background: C.border }}/>
+            <button 
+              onClick={() => setScreenshotMode(false)}
+              style={{
+                background: "#FEF2F2", cursor: "pointer", borderRadius: "6px",
+                padding: "6px 12px", fontSize: "13px", fontWeight: 600, color: "#EF4444", transition: "all 0.15s",
+                border: "1px solid #FEE2E2"
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.background = "#FEE2E2"; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = "#FEF2F2"; }}
+            >
+              Cancel
+            </button>
+          </div>
+
+          {/* Render the 3 interactive overlay boxes */}
+          {["full", "cards", "charts"].map((key) => {
+            const rect = rects[key];
+            if (!rect) return null;
+
+            const label = key === "full" ? "Entire Dashboard" : key === "cards" ? "Metrics Cards" : "Charts Section";
+
+            return (
+              <div
+                key={key}
+                onClick={() => captureArea(key, label)}
+                style={{
+                  position: "absolute",
+                  top: rect.top,
+                  left: rect.left,
+                  width: rect.width,
+                  height: rect.height,
+                  border: "2px dashed rgba(255,255,255,0.5)",
+                  borderRadius: "16px",
+                  cursor: "crosshair",
+                  boxSizing: "border-box",
+                  transition: "all 0.2s ease-in-out",
+                  pointerEvents: "auto",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "center",
+                  paddingTop: "12px",
+                }}
+                className="screenshot-zone"
+              >
+                <div 
+                  style={{
+                    background: "rgba(17, 24, 39, 0.85)",
+                    border: "1px solid rgba(255, 255, 255, 0.2)",
+                    color: "#FFFFFF",
+                    borderRadius: "20px",
+                    padding: "6px 14px",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+                    userSelect: "none",
+                    transition: "all 0.2s",
+                    pointerEvents: "none"
+                  }}
+                  className="screenshot-pill"
+                >
+                  <Camera size={12} strokeWidth={2.5}/>
+                  Capture {label}
+                </div>
+              </div>
+            );
+          })}
+
+          <style>{`
+            .screenshot-zone:hover {
+              border: 2px solid ${C.teal} !important;
+              background: ${C.teal}08 !important;
+              box-shadow: 0 0 20px ${C.teal}33 !important;
+            }
+            .screenshot-zone:hover .screenshot-pill {
+              background: ${C.teal} !important;
+              transform: scale(1.05);
+            }
+          `}</style>
+        </div>
+      )}
+
+      {/* Styled Off-screen Export Container */}
+      {exportData && (
+        <div 
+          ref={exportRef}
+          style={{
+            position: "fixed",
+            left: 0,
+            top: 0,
+            width: "1200px",
+            padding: "32px",
+            background: "#F4F6F9",
+            fontFamily: BODY,
+            color: C.ink,
+            display: "flex",
+            flexDirection: "column",
+            gap: "24px",
+            boxSizing: "border-box",
+            zIndex: -9999,
+            pointerEvents: "none"
+          }}
+        >
+          {/* Header */}
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            borderBottom: `2px solid ${C.border}`,
+            paddingBottom: "16px"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              <img src={aadhaarLogo} 
+                   alt="Aadhaar logo" 
+                   style={{ height: "40px", width: "auto" }}/>
+              <div>
+                <h2 style={{ margin: 0, fontFamily: HEAD, fontSize: "22px", fontWeight: 800, color: C.ink, letterSpacing: "-.02em" }}>
+                  Pehchaan Updates &amp; Revenue Dashboard
+                </h2>
+                <span style={{ fontSize: "12px", color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  UIDAI · Aadhaar App
+                </span>
+              </div>
+            </div>
+            
+            {/* Metadata Badges */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
+              <span style={{ fontSize: "11px", color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Selected Filters</span>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <span style={{ fontSize: "12px", background: "#FFFFFF", border: `1px solid ${C.border}`, color: C.sub, padding: "4px 10px", borderRadius: "8px", fontWeight: 600, fontFamily: BODY }}>
+                  Range: {periodLabel}
+                </span>
+                <span style={{ fontSize: "12px", background: "#FFFFFF", border: `1px solid ${C.border}`, color: C.sub, padding: "4px 10px", borderRadius: "8px", fontWeight: 600, fontFamily: BODY }}>
+                  View: {gran.charAt(0).toUpperCase() + gran.slice(1)}
+                </span>
+                <span style={{ fontSize: "12px", background: "#FFFFFF", border: `1px solid ${C.border}`, color: C.sub, padding: "4px 10px", borderRadius: "8px", fontWeight: 600, fontFamily: BODY }}>
+                  Type: {trend === "cumulative" ? "Cumulative" : "Daily"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Snapshot Label */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontFamily: HEAD, fontSize: "18px", fontWeight: 700, color: C.navy }}>
+              {exportData.areaName} Snapshot
+            </span>
+            {selCards.size > 0 && (
+              <span style={{ fontSize: "13px", background: `${C.navy}12`, color: C.navy, padding: "4px 10px", borderRadius: "6px", fontWeight: 600 }}>
+                Metrics: {activeTitle}
+              </span>
+            )}
+          </div>
+
+          {/* Main Image content */}
+          <div style={{
+            background: "#FFFFFF",
+            border: `1.5px solid ${C.border}`,
+            borderRadius: "16px",
+            overflow: "hidden",
+            boxShadow: SHADOW
+          }}>
+            <img 
+              src={exportData.dataUrl} 
+              style={{ width: "100%", display: "block" }} 
+              alt="Dashboard Screenshot"
+            />
+          </div>
+
+          {/* Footer */}
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            fontSize: "13px",
+            color: C.muted,
+            fontWeight: 500
+          }}>
+            <span>Generated via Pehchaan Dashboard System</span>
+            <span style={{ fontWeight: 700, color: C.sub, fontFamily: MONO, fontSize: "14px" }}>
+              data as on {currentDateStr}
+            </span>
+          </div>
+        </div>
+      )}
+
       <style>{`
         @keyframes sp { to { transform: rotate(360deg); } }
         .spin { animation: sp .9s linear infinite; }
