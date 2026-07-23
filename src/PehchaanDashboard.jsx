@@ -159,7 +159,7 @@ function Seg({ options, value, onChange }) {
 }
 
 // ── KPI Card ─────────────────────────────────────────────────────────────────
-function KpiCard({ cardKey, label, icon: Icon, color, value, badge, todayLabel, todayVal, rows1, sparkData, selected, onClick, period, preset }) {
+function KpiCard({ cardKey, label, icon: Icon, color, value, todayLabel, todayVal, rows1, sparkData, selected, onClick, period, preset }) {
   let bgStyle = selected ? C.selBg : C.surface;
   let borderStyle = `1.5px solid ${selected ? C.selBdr : C.border}`;
   let shadowStyle = selected ? SHADOW_SEL : SHADOW;
@@ -178,108 +178,56 @@ function KpiCard({ cardKey, label, icon: Icon, color, value, badge, todayLabel, 
     shadowStyle = selected ? `0 4px 14px rgba(74, 143, 112, 0.15)` : SHADOW;
   }
 
+  const displayPeriod = (preset === "today") 
+    ? (todayVal ? `Today: ${todayVal}` : "Today")
+    : (period || (preset === "all" ? "All time" : preset === "7" ? "Last Week" : preset === "30" ? "1 Month" : preset === "90" ? "3 Months" : preset === "cumulative" ? "Cumulative" : "Custom"));
+
   return (
     <div onClick={onClick} style={{
       background: bgStyle,
       border: borderStyle,
-      borderRadius: RADIUS, padding: "14px 16px",
+      borderRadius: RADIUS, padding: "10px 14px",
       cursor: "pointer", userSelect: "none",
       boxShadow: shadowStyle,
       transition: "box-shadow .18s, border-color .18s, background .18s",
-      display: "flex", flexDirection: "column", gap: 4,
-      height: "100%", boxSizing: "border-box"
+      display: "flex", flexDirection: "column", gap: 6,
+      boxSizing: "border-box"
     }}>
-      {/* Top Section */}
-      <div style={{display:"flex",flexDirection:"column",gap:12,flexShrink:0,minWidth:0}}>
-        {/* Title + Badge Stack */}
-        <div style={{
-          display:"flex",
-          alignItems: badge != null ? "flex-start" : "center",
-          gap:8,
-          minWidth:0
-        }}>
+      {/* Header Row: Icon + Title + Date Range */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:6,minWidth:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0,flex:1}}>
           <div style={{
-            width:32,
-            height:32,
-            borderRadius:8,
+            width:26,
+            height:26,
+            borderRadius:6,
             background:`${color}12`,
             display:"flex",
             alignItems:"center",
             justifyContent:"center",
-            flexShrink:0,
-            marginTop: badge != null ? 2 : 0
+            flexShrink:0
           }}>
-            <Icon size={16} color={color} strokeWidth={2.2}/>
+            <Icon size={14} color={color} strokeWidth={2.2}/>
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:2,minWidth:0,flex:1}}>
-            <span style={{fontSize:13,fontWeight:600,color:C.sub,fontFamily:BODY,letterSpacing:".01em",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</span>
-            {badge != null && (
-              <div style={{display:"flex"}}>
-                <span style={{
-                  fontSize:11,fontWeight:600,fontFamily:BODY,
-                  color: badge >= 0 ? "#2B8C5B" : "#C2410C",
-                  background: badge >= 0 ? "#F0FDF4" : "#FFF7ED",
-                  border: `1px solid ${badge >= 0 ? "#D1FAE5" : "#FFEDD5"}`,
-                  borderRadius:5, padding:"0px 5px", flexShrink:0, whiteSpace:"nowrap"
-                }}>{badge >= 0 ? "▲" : "▼"} {Math.abs(badge).toFixed(1)}%</span>
-              </div>
-            )}
-          </div>
+          <span style={{fontSize:13,fontWeight:700,color:C.sub,fontFamily:BODY,letterSpacing:".01em",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</span>
         </div>
+        <span style={{fontSize:11,fontWeight:600,color:"#64748B",fontFamily:BODY,whiteSpace:"nowrap",flexShrink:0}}>{displayPeriod}</span>
+      </div>
 
-        {/* Main Value + Sparkline + Today Chip */}
-        <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:12}}>
-          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12}}>
-            <div style={{fontFamily:HEAD,fontSize:26,fontWeight:700,color:C.ink,lineHeight:1,fontVariantNumeric:"tabular-nums",letterSpacing:"-.03em",whiteSpace:"nowrap"}}>{value}</div>
-            <div style={{flexShrink:0,paddingTop:2}}>
-              <Spark data={sparkData} color={color}/>
-            </div>
-          </div>
-          {todayLabel && (
-            <div style={{
-              display:"flex",flexDirection:"column",
-              background:"#F0F9FF",border:"1px solid #E0F2FE",
-              borderRadius:5,padding:"6px 10px",width:"100%",boxSizing:"border-box",gap:2
-            }}>
-              <span style={{
-                fontSize:10,fontFamily:BODY,color:"#0284C7",
-                fontWeight:600,textTransform:"uppercase",letterSpacing:".04em",lineHeight:1
-              }}>
-                {(preset === "today") ? todayLabel : "Selected Range"}
-              </span>
-              <div style={{
-                display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:8
-              }}>
-                <span style={{fontSize:12,fontWeight:700,color:C.sub,fontFamily:BODY,lineHeight:1}}>
-                  {(preset === "today") ? todayVal : (
-                    preset === "all" ? "All time" :
-                    preset === "7" ? "Last Week" :
-                    preset === "30" ? "1 Month" :
-                    preset === "90" ? "3 Months" :
-                    preset === "cumulative" ? "Cumulative" : "Custom"
-                  )}
-                </span>
-                {!(preset === "today") && period && (
-                  <span style={{fontSize:11,color:"#64748B",fontFamily:BODY,fontWeight:400,lineHeight:1}}>
-                    {period}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
+      {/* Main Value + Sparkline */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginTop:2}}>
+        <div style={{fontFamily:HEAD,fontSize:22,fontWeight:800,color:C.ink,lineHeight:1,fontVariantNumeric:"tabular-nums",letterSpacing:"-.03em",whiteSpace:"nowrap"}}>{value}</div>
+        <div style={{flexShrink:0}}>
+          <Spark data={sparkData} color={color} width={48} height={16}/>
         </div>
       </div>
 
-      {/* Flex spacer to push breakdown to bottom */}
-      <div style={{flex:1}}/>
-
-      {/* Breakdown Rows (Bottom aligned) */}
+      {/* Breakdown Rows */}
       {rows1 && rows1.length > 0 && (
-        <div style={{borderTop:`1px solid ${C.border}`,paddingTop:10,display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
+        <div style={{borderTop:`1px solid ${C.border}`,paddingTop:5,marginTop:2,display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
           {rows1.map((r,i) => (
             <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
-              <span style={{fontSize:13,color:C.muted,fontFamily:BODY,fontWeight:400,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.label}</span>
-              <span style={{fontSize:13,fontWeight:600,color:C.sub,fontFamily:BODY,whiteSpace:"nowrap",flexShrink:0}}>{r.value}</span>
+              <span style={{fontSize:11,color:C.muted,fontFamily:BODY,fontWeight:400,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.label}</span>
+              <span style={{fontSize:11,fontWeight:600,color:C.sub,fontFamily:BODY,whiteSpace:"nowrap",flexShrink:0}}>{r.value}</span>
             </div>
           ))}
         </div>
@@ -289,10 +237,10 @@ function KpiCard({ cardKey, label, icon: Icon, color, value, badge, todayLabel, 
 }
 
 // ── Combined Updates Card ───────────────────────────────────────────────────
-function CombinedUpdatesCard({ kpi, latest, pct, spark, selCards, toggleCard, periodLabel, preset }) {
+function CombinedUpdatesCard({ kpi, latest, spark, selCards, toggleCard, periodLabel, preset, monthlyStats }) {
   const isTotalSelected = selCards.has("total");
 
-  const renderSubCard = (subKey, label, icon, color, value, badge, sparkData, todayVal, rows) => {
+  const renderSubCard = (subKey, label, icon, color, value, sparkData, todayVal, subMonthlyData) => {
     const isSelected = selCards.has(subKey);
     const IconComponent = icon;
 
@@ -305,79 +253,111 @@ function CombinedUpdatesCard({ kpi, latest, pct, spark, selCards, toggleCard, pe
         style={{
           background: isSelected ? `${color}08` : "#FCFDFE",
           border: `1.5px solid ${isSelected ? color : C.border}`,
-          borderRadius: 12,
-          padding: "12px 12px",
+          borderRadius: 10,
+          padding: "8px 10px",
           cursor: "pointer",
           userSelect: "none",
           boxShadow: isSelected ? `0 4px 12px ${color}15` : "none",
           transition: "all .18s",
           display: "flex",
           flexDirection: "column",
-          gap: 8,
+          gap: 6,
           minWidth: 0,
-          height: "100%"
+          height: "100%",
+          boxSizing: "border-box",
+          overflow: "hidden"
         }}
       >
-        {/* Header Block (Consistent Layout) */}
-        <div style={{display: "flex", alignItems: "flex-start", gap: 6}}>
+        {/* Header Block */}
+        <div style={{display: "flex", alignItems: "center", gap: 5}}>
           <div style={{
-            width: 26,
-            height: 26,
-            borderRadius: 6,
+            width: 22,
+            height: 22,
+            borderRadius: 5,
             background: `${color}12`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            flexShrink: 0,
-            marginTop: 1
+            flexShrink: 0
           }}>
-            <IconComponent size={14} color={color} strokeWidth={2.2}/>
+            <IconComponent size={13} color={color} strokeWidth={2.2}/>
           </div>
-          <div style={{display: "flex", flexDirection: "column", gap: 2, minWidth: 0, flex: 1}}>
-            <span style={{fontSize: 13, fontWeight: 700, color: C.sub, fontFamily: BODY, lineHeight: 1.2}}>{label}</span>
-            {badge != null && (
-              <div style={{display: "flex"}}>
-                <span style={{
-                  fontSize: 10, fontWeight: 600, fontFamily: BODY,
-                  color: badge >= 0 ? "#2B8C5B" : "#C2410C",
-                  background: badge >= 0 ? "#F0FDF4" : "#FFF7ED",
-                  border: `1px solid ${badge >= 0 ? "#D1FAE5" : "#FFEDD5"}`,
-                  borderRadius: 4, padding: "0px 4px", flexShrink: 0, whiteSpace: "nowrap"
-                }}>{badge >= 0 ? "▲" : "▼"} {Math.abs(badge).toFixed(1)}%</span>
-              </div>
-            )}
+          <span style={{fontSize: 12, fontWeight: 700, color: C.sub, fontFamily: BODY, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{label}</span>
+        </div>
+
+        {/* Sparkline & Value */}
+        <div style={{display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 4}}>
+          <span style={{fontFamily: HEAD, fontSize: 18, fontWeight: 800, color: C.ink, lineHeight: 1, whiteSpace: "nowrap"}}>{value}</span>
+          <div style={{height: 14, width: 40, flexShrink: 0, overflow: "hidden"}}>
+            <Spark data={sparkData} color={color} width={40} height={14} />
           </div>
         </div>
 
-        {/* Sparkline above the data (wider and taller) */}
-        <div style={{height: 20, width: "100%", position: "relative", overflow: "hidden", flexShrink: 0}}>
-          <Spark data={sparkData} color={color} width="100%" height={20} />
-        </div>
+        {/* Month on Month Data List */}
+        {subMonthlyData && subMonthlyData.length > 0 && (
+          <div style={{
+            borderTop: `1px solid ${C.border}`,
+            paddingTop: 5,
+            marginTop: 2,
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+            flex: 1,
+            minHeight: 0,
+            overflow: "hidden"
+          }}>
+            <div style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: C.sub,
+              fontFamily: HEAD,
+              letterSpacing: ".02em",
+              marginBottom: 1
+            }}>
+              Month on Month
+            </div>
 
-        {/* Data: Value & Range/Today */}
-        <div style={{display: "flex", flexDirection: "column", gap: 2}}>
-          <span style={{fontFamily: HEAD, fontSize: 20, fontWeight: 800, color: C.ink, lineHeight: 1, whiteSpace: "nowrap"}}>{value}</span>
-          {preset === "today" ? (
-            <span style={{fontSize: 10, color: C.muted, fontFamily: BODY, whiteSpace: "nowrap"}}>Today: <strong style={{color: C.sub}}>{todayVal}</strong></span>
-          ) : (
-            <span style={{fontSize: 10, color: C.muted, fontFamily: BODY, whiteSpace: "nowrap"}}>
-              {preset === "all" ? "All time" : preset === "7" ? "Last Week" : preset === "30" ? "1 Month" : preset === "90" ? "3 Months" : preset === "cumulative" ? "Cumulative" : "Custom"}
-            </span>
-          )}
-        </div>
+            <div style={{
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              paddingRight: 2,
+              flex: 1
+            }} className="custom-scroll">
+              {subMonthlyData.map((m, idx) => (
+                <div key={m.key} style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                  paddingBottom: idx === subMonthlyData.length - 1 ? 0 : 5,
+                  borderBottom: idx === subMonthlyData.length - 1 ? "none" : `1px solid ${C.border}`
+                }}>
+                  {/* Month Label */}
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: C.ink,
+                    fontFamily: HEAD,
+                    lineHeight: 1.1
+                  }}>
+                    {m.monthLabel}
+                  </span>
 
-        {/* Flex spacer to push bifurcations to bottom */}
-        <div style={{flex: 1}} />
+                  {/* Total */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 10, color: C.muted, fontFamily: BODY, fontWeight: 500 }}>Total</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: C.ink, fontFamily: MONO }}>{nfIN(m.total)}</span>
+                  </div>
 
-        {/* Breakdown rows (Bifurcations) */}
-        {rows && rows.length > 0 && (
-          <div style={{borderTop: `1px solid ${C.border}`, paddingTop: 6, display: "flex", flexDirection: "column", gap: 4}}>
-            {rows.map((r, idx) => (
-              <div key={idx} style={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 4}}>
-                <span style={{fontSize: 12, color: C.muted, fontFamily: BODY, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{r.label}</span>
-                <span style={{fontSize: 12, fontWeight: 600, color: C.sub, fontFamily: BODY, whiteSpace: "nowrap"}}>{r.value}</span>
-              </div>
-            ))}
+                  {/* Day Avg */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 10, color: C.muted, fontFamily: BODY, fontWeight: 500 }}>Day Avg</span>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: C.sub, fontFamily: MONO }}>{nfIN(m.dayAvg)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -389,16 +369,18 @@ function CombinedUpdatesCard({ kpi, latest, pct, spark, selCards, toggleCard, pe
       background: C.surface,
       border: `1.5px solid ${isTotalSelected ? C.selBdr : C.border}`,
       borderRadius: RADIUS,
-      padding: "10px 16px",
+      padding: "10px 14px",
       display: "flex",
       flexDirection: "column",
-      gap: 12,
+      gap: 8,
       boxShadow: isTotalSelected ? SHADOW_SEL : SHADOW,
       transition: "box-shadow .18s, border-color .18s, background .18s",
       userSelect: "none",
-      height: "100%"
+      height: "100%",
+      boxSizing: "border-box",
+      overflow: "hidden"
     }}>
-      {/* 1. Main KPI Row (Total Updates) - Styled exactly like KpiCard */}
+      {/* 1. Main KPI Row (Total Updates) */}
       <div 
         onClick={() => toggleCard("total")}
         style={{
@@ -406,78 +388,36 @@ function CombinedUpdatesCard({ kpi, latest, pct, spark, selCards, toggleCard, pe
           flexDirection: "column",
           cursor: "pointer",
           transition: "all .15s",
-          gap: 6,
-          paddingTop: 2
+          gap: 4
         }}
       >
-        {/* Title + Badge Stack */}
-        <div style={{display: "flex", alignItems: pct("total") != null ? "flex-start" : "center", gap: 8, minWidth: 0}}>
-          <div style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            background: `${C.total}12`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-            marginTop: pct("total") != null ? 2 : 0
-          }}>
-            <Activity size={16} color={C.total} strokeWidth={2.2}/>
+        {/* Title + Date Range Header Row */}
+        <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, minWidth: 0}}>
+          <div style={{display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1}}>
+            <div style={{
+              width: 24,
+              height: 24,
+              borderRadius: 6,
+              background: `${C.total}12`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0
+            }}>
+              <Activity size={14} color={C.total} strokeWidth={2.2}/>
+            </div>
+            <span style={{fontSize: 13, fontWeight: 700, color: C.sub, fontFamily: BODY, letterSpacing: ".01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>Total Updates</span>
           </div>
-          <div style={{display: "flex", flexDirection: "column", gap: 2, minWidth: 0, flex: 1}}>
-            <span style={{fontSize: 13, fontWeight: 600, color: C.sub, fontFamily: BODY, letterSpacing: ".01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>Total Updates</span>
-            {pct("total") != null && (
-              <div style={{display: "flex"}}>
-                <span style={{
-                  fontSize: 11, fontWeight: 600, fontFamily: BODY,
-                  color: pct("total") >= 0 ? "#2B8C5B" : "#C2410C",
-                  background: pct("total") >= 0 ? "#F0FDF4" : "#FFF7ED",
-                  border: `1px solid ${pct("total") >= 0 ? "#D1FAE5" : "#FFEDD5"}`,
-                  borderRadius: 5, padding: "0px 5px", flexShrink: 0, whiteSpace: "nowrap"
-                }}>{pct("total") >= 0 ? "▲" : "▼"} {Math.abs(pct("total")).toFixed(1)}%</span>
-              </div>
-            )}
-          </div>
+          <span style={{fontSize: 11, fontWeight: 600, color: "#64748B", fontFamily: BODY, whiteSpace: "nowrap", flexShrink: 0}}>
+            {preset === "today" ? (latest ? `Today: ${nfIN(latest.total)}` : "Today") : (periodLabel || "All time")}
+          </span>
         </div>
 
-        {/* Main Value + Sparkline + Today Chip */}
-        <div style={{display: "flex", flexDirection: "column", gap: 4, marginTop: 4}}>
-          <div style={{display: "flex", alignItems: "flex-start", justifySpacing: "space-between", gap: 12}}>
-            <div style={{fontFamily: HEAD, fontSize: 26, fontWeight: 700, color: C.ink, lineHeight: 1, fontVariantNumeric: "tabular-nums", letterSpacing: "-.03em", whiteSpace: "nowrap", flex: 1}}>{nfIN(kpi.total)}</div>
-            <div style={{flexShrink: 0, paddingTop: 2}}>
-              <Spark data={spark("total")} color={C.total} />
-            </div>
-          </div>
-          
-          {/* Today / Range Chip */}
-          <div style={{
-            display: "flex", flexDirection: "column",
-            background: "#F0F9FF", border: "1px solid #E0F2FE",
-            borderRadius: 5, padding: "4px 8px", width: "100%", boxSizing: "border-box", gap: 1
-          }}>
-            <span style={{
-              fontSize: 10, fontFamily: BODY, color: "#0284C7",
-              fontWeight: 600, textTransform: "uppercase", letterSpacing: ".04em", lineHeight: 1
-            }}>
-              {preset === "today" ? "Today" : "Selected Range"}
-            </span>
-            <div style={{display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8}}>
-              <span style={{fontSize: 12, fontWeight: 700, color: C.sub, fontFamily: BODY, lineHeight: 1}}>
-                {preset === "today" ? (latest ? nfIN(latest.total) : "—") : (
-                  preset === "all" ? "All time" :
-                  preset === "7" ? "Last Week" :
-                  preset === "30" ? "1 Month" :
-                  preset === "90" ? "3 Months" :
-                  preset === "cumulative" ? "Cumulative" : "Custom"
-                )}
-              </span>
-              {!(preset === "today") && periodLabel && (
-                <span style={{fontSize: 11, color: "#64748B", fontFamily: BODY, fontWeight: 400, lineHeight: 1}}>
-                  {periodLabel}
-                </span>
-              )}
-            </div>
+        {/* Main Value + Sparkline */}
+        <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 2}}>
+          <div style={{fontFamily: HEAD, fontSize: 22, fontWeight: 800, color: C.ink, lineHeight: 1, fontVariantNumeric: "tabular-nums", letterSpacing: "-.03em", whiteSpace: "nowrap"}}>{nfIN(kpi.total)}</div>
+          <div style={{flexShrink: 0}}>
+            <Spark data={spark("total")} color={C.total} width={48} height={16}/>
           </div>
         </div>
       </div>
@@ -486,10 +426,9 @@ function CombinedUpdatesCard({ kpi, latest, pct, spark, selCards, toggleCard, pe
       <div style={{
         display: "grid",
         gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-        gap: 10,
+        gap: 8,
         flex: 1,
-        minHeight: 0,
-        maxHeight: 180
+        minHeight: 0
       }}>
         {/* Mobile */}
         {renderSubCard(
@@ -498,10 +437,14 @@ function CombinedUpdatesCard({ kpi, latest, pct, spark, selCards, toggleCard, pe
           Smartphone, 
           C.mobile, 
           nfIN(kpi.mobile), 
-          pct("mobile"), 
           spark("mobile"), 
           latest ? nfIN(latest.mobile) : "—",
-          [{label: "% of total", value: kpi.total ? `${(kpi.mobile/kpi.total*100).toFixed(1)}%` : "—"}]
+          monthlyStats.map(m => ({
+            key: m.key,
+            monthLabel: m.monthLabel,
+            total: m.mobile,
+            dayAvg: m.days > 0 ? Math.round(m.mobile / m.days) : 0
+          }))
         )}
 
         {/* Address */}
@@ -511,13 +454,14 @@ function CombinedUpdatesCard({ kpi, latest, pct, spark, selCards, toggleCard, pe
           MapPin, 
           C.address, 
           nfIN(kpi.address + kpi.hof), 
-          pct("address"), 
           spark("address").map((d,i)=>({v:d.v+(spark("hof")[i]?.v||0)})), 
           latest ? nfIN((latest.address||0)+(latest.hof||0)) : "—",
-          [
-            {label: "Regular", value: nfIN(kpi.address)},
-            {label: "HOF", value: nfIN(kpi.hof)}
-          ]
+          monthlyStats.map(m => ({
+            key: m.key,
+            monthLabel: m.monthLabel,
+            total: m.address + m.hof,
+            dayAvg: m.days > 0 ? Math.round((m.address + m.hof) / m.days) : 0
+          }))
         )}
 
         {/* Email */}
@@ -527,13 +471,14 @@ function CombinedUpdatesCard({ kpi, latest, pct, spark, selCards, toggleCard, pe
           Mail, 
           C.email, 
           nfIN(kpi.email), 
-          pct("email"), 
           spark("email"), 
           latest ? nfIN(latest.email) : "—",
-          [
-            {label: "% of total", value: kpi.total ? `${(kpi.email/kpi.total*100).toFixed(1)}%` : "—"},
-            {label: "Excl. from revenue", value: "Yes"}
-          ]
+          monthlyStats.map(m => ({
+            key: m.key,
+            monthLabel: m.monthLabel,
+            total: m.email,
+            dayAvg: m.days > 0 ? Math.round(m.email / m.days) : 0
+          }))
         )}
       </div>
     </div>
@@ -858,21 +803,32 @@ export default function PehchaanDashboard() {
   }, [buckets, trend]);
   const hasDl = useMemo(() => buckets.some(b=>b.android||b.ios), [buckets]);
 
+  const monthlyStats = useMemo(() => {
+    if (!rows || !rows.length) return [];
+    const m = new Map();
+    for (const r of rows) {
+      const key = r.date.slice(0, 7);
+      if (!m.has(key)) {
+        const [yr, mo] = key.split("-");
+        const monthLabel = MONTHS[+mo - 1] + " '" + yr.slice(2);
+        m.set(key, { key, monthLabel, mobile: 0, address: 0, hof: 0, email: 0, days: 0 });
+      }
+      const b = m.get(key);
+      b.mobile += (r.mobile || 0);
+      b.address += (r.address || 0);
+      b.hof += (r.hof || 0);
+      b.email += (r.emailSheet || 0);
+      b.days += 1;
+    }
+    return [...m.values()].sort((a, b) => b.key.localeCompare(a.key));
+  }, [rows]);
+
   const kpi = useMemo(() => {
     if (!inRange || !inRange.length) return {total:0,mobile:0,address:0,hof:0,email:0,base:0,revenue:0,android:0,ios:0};
     const s = f => inRange.reduce((a,r)=>a+(r[f]||0),0);
     const mobile=s("mobile"),address=s("address"),hof=s("hof"),email=s("email");
     const base = mobile+address+hof;
     return {total:base+email,mobile,address,hof,email,base,revenue:base*RATE_PER_UPDATE,android:s("android"),ios:s("ios")};
-  }, [inRange]);
-
-  const pct = useCallback(field => {
-    if (inRange.length < 4) return null;
-    const n = Math.min(7, Math.floor(inRange.length/2));
-    const recent = inRange.slice(-n).reduce((a,r)=>a+(r[field]??0),0);
-    const prior  = inRange.slice(-2*n,-n).reduce((a,r)=>a+(r[field]??0),0);
-    if (prior===0) return null;
-    return +((recent-prior)/prior*100).toFixed(1);
   }, [inRange]);
 
   const spark = useCallback(field => inRange.slice(-20).map(r=>({v:r[field]??0})), [inRange]);
@@ -1178,7 +1134,7 @@ export default function PehchaanDashboard() {
               {/* Section 1: Financial & Adoption (Revenue & Downloads) */}
               <div className="dashboard-kpi-sec1">
                 <KpiCard cardKey="revenue" label="Total Revenue" icon={IndianRupee} color={C.revenue}
-                  value={`₹${toCr(kpi.revenue)} Cr`} badge={pct("base")}
+                  value={`₹${toCr(kpi.revenue)} Cr`}
                   todayLabel="Today" todayVal={latest?`₹${Math.round((latest.base||0)*RATE_PER_UPDATE).toLocaleString("en-IN")}`:"—"}
                   rows1={[{label:"Billable updates",value:nfIN(kpi.base)},{label:"Rate / update",value:`₹${RATE_PER_UPDATE}`}]}
                   sparkData={spark("base")}
@@ -1186,12 +1142,12 @@ export default function PehchaanDashboard() {
                   period={periodLabel} preset={preset}/>
 
                 <KpiCard cardKey="downloads" label="App Downloads" icon={Download} color={C.android}
-                  value={nfIN(kpi.android + kpi.ios + (isAllTime ? 2281805 : 0))} badge={pct("android")}
+                  value={nfIN(kpi.android + kpi.ios + (isAllTime ? 2281805 : 0))}
                   todayLabel="Today" todayVal={latest?nfIN((latest.android||0)+(latest.ios||0)):"—"}
                   rows1={
                     isAllTime ? [
                       {label:"Android",value:nfIN(kpi.android)},
-                      {label:"Before 11 Nov",value:nfIN(2281805)},
+                      {label:"Before 25 Nov '25",value:nfIN(2281805)},
                       {label:"iOS",value:nfIN(kpi.ios)}
                     ] : [
                       {label:"Android",value:nfIN(kpi.android)},
@@ -1208,12 +1164,12 @@ export default function PehchaanDashboard() {
                 <CombinedUpdatesCard 
                   kpi={kpi} 
                   latest={latest} 
-                  pct={pct} 
                   spark={spark} 
                   selCards={selCards} 
                   toggleCard={toggleCard} 
                   periodLabel={periodLabel} 
                   preset={preset}
+                  monthlyStats={monthlyStats}
                 />
               </div>
             </div>
@@ -1223,8 +1179,8 @@ export default function PehchaanDashboard() {
 
               {/* Update trends chart */}
               {showTrends && (
-                <div style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS,display:"flex",flexDirection:"column",minHeight:0,minWidth:0,overflow:"hidden",padding:"16px",boxShadow:SHADOW}}>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexShrink:0,flexWrap:"wrap",gap:12}}>
+                <div style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS,display:"flex",flexDirection:"column",minHeight:0,minWidth:0,overflow:"hidden",padding:"14px 18px 14px 14px",boxShadow:SHADOW,boxSizing:"border-box"}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,flexShrink:0,flexWrap:"wrap",gap:12}}>
                     <div style={{display:"flex",alignItems:"center",gap:8}}>
                       <TrendingUp size={18} color={C.teal} strokeWidth={2.2}/>
                       <span style={{fontSize:20,fontWeight:700,color:C.ink,fontFamily:HEAD}}>{activeTitle}</span>
@@ -1246,10 +1202,10 @@ export default function PehchaanDashboard() {
                   </div>
                   <div style={{flex:1,minHeight:0}}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartData} margin={{top:4,right:8,left:0,bottom:0}}>
+                      <LineChart data={chartData} margin={{top:10,right:36,left:10,bottom:4}}>
                         <CartesianGrid strokeDasharray="4 4" stroke="#F3F4F6" vertical={false}/>
                         <XAxis dataKey="label" tick={{fontSize:14,fill:C.faint,fontFamily:MONO}} tickMargin={6} minTickGap={32} axisLine={{stroke:C.border}} tickLine={false}/>
-                        <YAxis tick={{fontSize:14,fill:C.faint,fontFamily:MONO}} tickFormatter={fmtK} axisLine={false} tickLine={false} width={48}/>
+                        <YAxis tick={{fontSize:14,fill:C.faint,fontFamily:MONO}} tickFormatter={fmtK} axisLine={false} tickLine={false} width={54}/>
                         <Tooltip content={<ChartTooltip isRevenue={selCards.has("revenue")}/>}/>
                         {lineDef.filter(l=>effectiveLines[l.key]).map(l=>(
                           <Line key={l.key} type="monotone" dataKey={l.key} name={l.name} stroke={l.color}
@@ -1264,8 +1220,8 @@ export default function PehchaanDashboard() {
 
             {/* Downloads chart */}
             {showDl && (
-              <div style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS,display:"flex",flexDirection:"column",minHeight:0,minWidth:0,overflow:"hidden",padding:"16px",boxShadow:SHADOW}}>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexShrink:0,flexWrap:"wrap",gap:12}}>
+              <div style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS,display:"flex",flexDirection:"column",minHeight:0,minWidth:0,overflow:"hidden",padding:"14px 18px 14px 14px",boxShadow:SHADOW,boxSizing:"border-box"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,flexShrink:0,flexWrap:"wrap",gap:12}}>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
                     <Download size={18} color={C.android} strokeWidth={2.2}/>
                     <span style={{fontSize:20,fontWeight:700,color:C.ink,fontFamily:HEAD}}>App Downloads</span>
@@ -1289,10 +1245,10 @@ export default function PehchaanDashboard() {
                 <div style={{flex:1,minHeight:0}}>
                   {hasDl ? (
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={dlData} margin={{top:4,right:8,left:0,bottom:0}}>
+                      <LineChart data={dlData} margin={{top:10,right:36,left:10,bottom:4}}>
                         <CartesianGrid strokeDasharray="4 4" stroke="#F3F4F6" vertical={false}/>
                         <XAxis dataKey="label" tick={{fontSize:14,fill:C.faint,fontFamily:MONO}} minTickGap={32} axisLine={{stroke:C.border}} tickLine={false}/>
-                        <YAxis tick={{fontSize:14,fill:C.faint,fontFamily:MONO}} axisLine={false} tickLine={false} width={48} tickFormatter={fmtK}/>
+                        <YAxis tick={{fontSize:14,fill:C.faint,fontFamily:MONO}} axisLine={false} tickLine={false} width={54} tickFormatter={fmtK}/>
                         <Tooltip content={<ChartTooltip/>}/>
                         <Line type="monotone" dataKey="android" name="Android" stroke={C.android} strokeWidth={2.2}
                           dot={false} activeDot={{r:6,strokeWidth:0}} animationDuration={400} animationEasing="ease-out"/>
