@@ -102,7 +102,7 @@ function parseSheetCSV(csv) {
       else if (x.includes("hof")){cols.hof??=j;}
       else if (x.includes("mobile")){cols.mobile??=j;}
       else if (x.includes("email")){cols.email??=j;}
-      else if (x.includes("address")){cols.address??=j;}
+      else if (x.includes("address") && !x.includes("hof")){cols.address??=j;}
       else if (x.includes("ios")){cols.ios??=j;}
       else if (x.includes("android")){cols.android??=j;}
     });
@@ -661,6 +661,11 @@ export default function PehchaanDashboard() {
     });
   }, []);
 
+  const presetRef = useRef(preset);
+  useEffect(() => {
+    presetRef.current = preset;
+  }, [preset]);
+
   const tryUnlock = async () => {
     setBusy(true); setPwErr(false); setError("");
     try {
@@ -678,16 +683,27 @@ export default function PehchaanDashboard() {
         }
       }
 
-      const res = await fetch(url, options);
+      let res;
+      try {
+        res = await fetch(url, options);
+        if (res.status === 401) throw new Error("401");
+        if (!res.ok && !import.meta.env.DEV) {
+          res = await fetch(SHEET_CSV_DEV, { cache: "default" });
+        }
+      } catch (fetchErr) {
+        if (fetchErr.message === "401") throw fetchErr;
+        res = await fetch(SHEET_CSV_DEV, { cache: "default" });
+      }
+
       if (res.status === 401) throw new Error("401");
       if (!res.ok) throw new Error(`HTTP ${res.status} — failed to load data`);
 
       const parsed = parseSheetCSV(await res.text());
+      const max = parsed[parsed.length - 1].date;
+
       setRows(parsed); setLastUpd(new Date());
-      const max = parsed[parsed.length-1].date;
-      
-      setFrom(f => f || DATE_MIN);
-      setTo(t => t || max);
+      setFrom(DATE_MIN);
+      setTo(max);
       
       sessionStorage.setItem("pehchaan_authorized", "true");
       sessionStorage.setItem("pehchaan_passcode", pw);
@@ -709,35 +725,79 @@ export default function PehchaanDashboard() {
     setPw("");
   };
 
-  const fetchSheet = useCallback(async (bust=false) => {
+  const fetchSheet = useCallback(async (bust = false) => {
     setBusy(true); setError("");
     try {
       let url = "/api/data";
       let options = {
         headers: { "x-passcode": pw },
-        cache: bust ? "reload" : "default"
+        cache: bust ? "no-store" : "default"
       };
 
       if (import.meta.env.DEV) {
         url = bust ? `${SHEET_CSV_DEV}&_=${Date.now()}` : SHEET_CSV_DEV;
-        options = { cache: bust ? "reload" : "default" };
+        options = { cache: bust ? "no-store" : "default" };
       } else if (bust) {
-        url = `/api/data?bust=true`;
+        url = `/api/data?bust=true&_=${Date.now()}`;
+        options = {
+          headers: { "x-passcode": pw },
+          cache: "no-store"
+        };
       }
 
-      const res = await fetch(url, options);
+      let res;
+      try {
+        res = await fetch(url, options);
+        if (res.status === 401) throw new Error("Incorrect or expired passcode");
+        if (!res.ok && !import.meta.env.DEV) {
+          const directUrl = bust ? `${SHEET_CSV_DEV}&_=${Date.now()}` : SHEET_CSV_DEV;
+          res = await fetch(directUrl, { cache: bust ? "no-store" : "default" });
+        }
+      } catch (err) {
+        if (err.message?.includes("passcode")) throw err;
+        const directUrl = bust ? `${SHEET_CSV_DEV}&_=${Date.now()}` : SHEET_CSV_DEV;
+        res = await fetch(directUrl, { cache: bust ? "no-store" : "default" });
+      }
+
       if (res.status === 401) throw new Error("Incorrect or expired passcode");
       if (!res.ok) throw new Error(`HTTP ${res.status} — failed to load data`);
-      const parsed = parseSheetCSV(await res.text());
-      setRows(parsed); setLastUpd(new Date());
-      const max = parsed[parsed.length-1].date;
-      
-      setFrom(f => f || DATE_MIN);
-      setTo(t => t || max);
-    } catch(e) { setError(e.message||"Could not fetch sheet"); }
-    finally { setBusy(false); }
+
+      const csvText = await res.text();
+      const parsed = parseSheetCSV(csvText);
+
+      setRows(prevRows => {
+        const oldMax = prevRows?.[prevRows.length - 1]?.date;
+        const newMax = parsed[parsed.length - 1].date;
+        const currentPreset = presetRef.current;
+
+        setFrom(f => f || DATE_MIN);
+        setTo(t => {
+          if (!t || t === oldMax || currentPreset === "all" || currentPreset === "cumulative") {
+            return newMax;
+          }
+          return t;
+        });
+
+        return parsed;
+      });
+      setLastUpd(new Date());
+    } catch(e) {
+      setError(e.message || "Could not fetch sheet");
+    } finally {
+      setBusy(false);
+    }
   }, [pw]);
+
   useEffect(() => { if (gate) fetchSheet(false); }, [gate, fetchSheet]);
+
+  // Auto-refresh every 5 minutes when dashboard is active
+  useEffect(() => {
+    if (!gate) return;
+    const timer = setInterval(() => {
+      fetchSheet(true);
+    }, 5 * 60 * 1000);
+    return () => clearInterval(timer);
+  }, [gate, fetchSheet]);
 
   const bounds = useMemo(() => rows ? { min:DATE_MIN, max:rows[rows.length-1].date } : null, [rows]);
 

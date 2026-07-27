@@ -20,14 +20,22 @@ export default async function handler(req, res) {
     const bust = req.query.bust === 'true';
     const url = bust ? `${SHEET_CSV}&_=${Date.now()}` : SHEET_CSV;
     
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: bust ? { 'Cache-Control': 'no-cache, no-store' } : {}
+    });
     if (!response.ok) {
       return res.status(500).json({ error: `Failed to fetch from Google Sheets: HTTP ${response.status}` });
     }
     
     const csvData = await response.text();
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
+    if (bust) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    } else {
+      res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
+    }
     return res.status(200).send(csvData);
   } catch (error) {
     return res.status(500).json({ error: error.message });
