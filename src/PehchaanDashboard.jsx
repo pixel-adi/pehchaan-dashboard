@@ -19,7 +19,7 @@ import aadhaarLogo from "./Aadhaar.svg";
 */
 const SHEET_ID  = "1pwUb9tNTzqGO2utAzF-oLRNiCsENK596Mj-ff8etGzA";
 const SHEET_CSV_DEV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
-const DATE_MIN  = "2025-11-25";
+const DATE_MIN  = "2025-06-26";
 const RATE_PER_UPDATE  = 75;
 
 // ── design tokens (premium, low-fatigue, toned-down tricolor theme) ────────────
