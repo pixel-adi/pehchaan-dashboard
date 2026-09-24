@@ -930,7 +930,6 @@ export default function PehchaanDashboard() {
   const toggleCard = ck => setSelCards(prev => { const n=new Set(prev); n.has(ck)?n.delete(ck):n.add(ck); return n; });
 
   const isFilterChanged = preset !== "all" || gran !== "daily" || selCards.size > 0 || from !== DATE_MIN || to !== bounds?.max;
-  const isAllTime = (preset === "all" || preset === "cumulative" || ((!from || from === DATE_MIN) && (!to || to === bounds?.max)));
 
   const handleResetFilters = () => {
     setPreset("all");
@@ -1202,18 +1201,12 @@ export default function PehchaanDashboard() {
                   period={periodLabel} preset={preset}/>
 
                 <KpiCard cardKey="downloads" label="App Downloads" icon={Download} color={C.android}
-                  value={nfIN(kpi.android + kpi.ios + (isAllTime ? 2281805 : 0))}
+                  value={nfIN(kpi.android + kpi.ios)}
                   todayLabel="Today" todayVal={latest?nfIN((latest.android||0)+(latest.ios||0)):"—"}
-                  rows1={
-                    isAllTime ? [
-                      {label:"Android",value:nfIN(kpi.android)},
-                      {label:"Before 25 Nov '25",value:nfIN(2281805)},
-                      {label:"iOS",value:nfIN(kpi.ios)}
-                    ] : [
-                      {label:"Android",value:nfIN(kpi.android)},
-                      {label:"iOS",value:nfIN(kpi.ios)}
-                    ]
-                  }
+                  rows1={[
+                    {label:"Android",value:nfIN(kpi.android)},
+                    {label:"iOS",value:nfIN(kpi.ios)}
+                  ]}
                   sparkData={spark("android").map((d,i)=>({v:d.v+(spark("ios")[i]?.v||0)}))}
                   selected={selCards.has("downloads")} onClick={()=>toggleCard("downloads")}
                   period={periodLabel} preset={preset}/>
